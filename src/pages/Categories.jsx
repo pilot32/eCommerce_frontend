@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { categoryApi } from '../services/categoryApi';
+import { useToast } from '../context/ToastContext';
 
 export default function Categories() {
+  const { addToast } = useToast();
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
@@ -16,6 +18,7 @@ export default function Categories() {
       setCategories(Array.isArray(data) ? data : []);
     } catch (err) {
       setError('Failed to fetch categories');
+      addToast('Failed to fetch categories', 'error');
     } finally {
       setLoading(false);
     }
@@ -38,13 +41,17 @@ export default function Categories() {
     try {
       if (editingId) {
         await categoryApi.update(editingId, form);
+        addToast('Category updated successfully!', 'success');
       } else {
         await categoryApi.create(form);
+        addToast('Category created successfully!', 'success');
       }
       resetForm();
       fetchCategories();
     } catch (err) {
-      setError(err.response?.data?.message || 'Operation failed');
+      const msg = err.response?.data?.message || 'Operation failed';
+      setError(msg);
+      addToast(msg, 'error');
     }
   };
 
@@ -63,18 +70,24 @@ export default function Categories() {
     if (!window.confirm('Are you sure you want to delete this category?')) return;
     try {
       await categoryApi.delete(id);
+      addToast('Category deleted successfully!', 'success');
       fetchCategories();
     } catch (err) {
-      setError(err.response?.data?.message || 'Delete failed');
+      const msg = err.response?.data?.message || 'Delete failed';
+      setError(msg);
+      addToast(msg, 'error');
     }
   };
 
   const handleToggleStatus = async (cat) => {
     try {
       await categoryApi.updateStatus(cat._id, { isActive: !cat.isActive });
+      addToast(`Category marked as ${cat.isActive ? 'inactive' : 'active'}`, 'success');
       fetchCategories();
     } catch (err) {
-      setError(err.response?.data?.message || 'Status update failed');
+      const msg = err.response?.data?.message || 'Status update failed';
+      setError(msg);
+      addToast(msg, 'error');
     }
   };
 

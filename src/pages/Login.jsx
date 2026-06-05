@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useNavigate, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 
 export default function Login() {
   const { token, login } = useAuth();
+  const { addToast } = useToast();
   const navigate = useNavigate();
 
   const [email, setEmail] = useState('');
@@ -22,9 +24,12 @@ export default function Login() {
 
     try {
       await login(email, password);
+      addToast('Login successful!', 'success');
       navigate('/admin');
     } catch (err) {
-      setError(err.response?.data?.message || 'Login failed. Please check your credentials.');
+      const msg = err.response?.data?.message || 'Login failed. Please check your credentials.';
+      setError(msg);
+      addToast(msg, 'error');
     } finally {
       setLoading(false);
     }

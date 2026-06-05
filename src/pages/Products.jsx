@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { productApi } from '../services/productApi';
 import { categoryApi } from '../services/categoryApi';
 import { subcategoryApi } from '../services/subcategoryApi';
+import { useToast } from '../context/ToastContext';
 
 const emptyForm = {
   name: '', description: '', categoryId: '', subcategoryId: '',
@@ -10,6 +11,7 @@ const emptyForm = {
 };
 
 export default function Products() {
+  const { addToast } = useToast();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
@@ -26,6 +28,7 @@ export default function Products() {
       setProducts(Array.isArray(data) ? data : []);
     } catch (err) {
       setError('Failed to fetch products');
+      addToast('Failed to fetch products', 'error');
     } finally {
       setLoading(false);
     }
@@ -80,13 +83,17 @@ export default function Products() {
     try {
       if (editingId) {
         await productApi.update(editingId, payload);
+        addToast('Product updated successfully!', 'success');
       } else {
         await productApi.create(payload);
+        addToast('Product created successfully!', 'success');
       }
       resetForm();
       fetchProducts();
     } catch (err) {
-      setError(err.response?.data?.message || 'Operation failed');
+      const msg = err.response?.data?.message || 'Operation failed';
+      setError(msg);
+      addToast(msg, 'error');
     }
   };
 
@@ -108,18 +115,24 @@ export default function Products() {
     if (!window.confirm('Are you sure you want to delete this product?')) return;
     try {
       await productApi.delete(id);
+      addToast('Product deleted successfully!', 'success');
       fetchProducts();
     } catch (err) {
-      setError(err.response?.data?.message || 'Delete failed');
+      const msg = err.response?.data?.message || 'Delete failed';
+      setError(msg);
+      addToast(msg, 'error');
     }
   };
 
   const handleToggleStatus = async (product) => {
     try {
       await productApi.updateStatus(product._id, { isActive: !product.isActive });
+      addToast(`Product marked as ${product.isActive ? 'inactive' : 'active'}`, 'success');
       fetchProducts();
     } catch (err) {
-      setError(err.response?.data?.message || 'Status update failed');
+      const msg = err.response?.data?.message || 'Status update failed';
+      setError(msg);
+      addToast(msg, 'error');
     }
   };
 
