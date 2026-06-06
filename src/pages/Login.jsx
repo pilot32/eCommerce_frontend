@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 
 export default function Login() {
-  const { token, login } = useAuth();
+  const { token, login, isAdmin, user } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
 
@@ -13,8 +13,10 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  if (token) {
-    return <Navigate to="/admin" replace />;
+  // Already logged in → send to correct side
+  if (token && user) {
+    if (isAdmin) return <Navigate to="/admin" replace />;
+    return <Navigate to="/customer" replace />;
   }
 
   const handleSubmit = async (e) => {
@@ -25,7 +27,16 @@ export default function Login() {
     try {
       await login(email, password);
       addToast('Login successful!', 'success');
-      navigate('/admin');
+
+      // Small delay so auth state updates before navigation
+      setTimeout(() => {
+        const savedUser = JSON.parse(localStorage.getItem('user') || '{}');
+        if (savedUser.role === 'ADMIN') {
+          navigate('/admin');
+        } else {
+          navigate('/customer');
+        }
+      }, 100);
     } catch (err) {
       const msg = err.response?.data?.message || 'Login failed. Please check your credentials.';
       setError(msg);
@@ -40,7 +51,7 @@ export default function Login() {
       <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
         <div className="text-center mb-8">
           <h1 className="text-2xl font-bold text-gray-900">Wornora</h1>
-          <p className="text-gray-500 mt-2">Admin Login</p>
+          <p className="text-gray-500 mt-2">Login to your account</p>
         </div>
 
         {error && (
@@ -51,8 +62,10 @@ export default function Login() {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <input
+              id="email"
+              name="email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -63,8 +76,10 @@ export default function Login() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">Password</label>
             <input
+              id="password"
+              name="password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}

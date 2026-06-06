@@ -8,15 +8,24 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+useEffect(() => {
+  try {
     const savedToken = localStorage.getItem('token');
     const savedUser = localStorage.getItem('user');
+
     if (savedToken && savedUser) {
       setToken(savedToken);
       setUser(JSON.parse(savedUser));
     }
+  } catch (error) {
+    console.error('Failed to restore auth state:', error);
+
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+  } finally {
     setLoading(false);
-  }, []);
+  }
+}, []);
 
   const login = async (email, password) => {
     const response = await authApi.login({ email, password });

@@ -11,6 +11,7 @@ const emptyForm = {
 };
 
 export default function Products() {
+  const [submitting, setSubmitting] = useState(false);
   const { addToast } = useToast();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -71,6 +72,7 @@ export default function Products() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSubmitting(true);
     const payload = {
       ...form,
       price: Number(form.price),
@@ -94,6 +96,8 @@ export default function Products() {
       const msg = err.response?.data?.message || 'Operation failed';
       setError(msg);
       addToast(msg, 'error');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -212,9 +216,22 @@ export default function Products() {
               </div>
             </div>
             <div className="flex gap-3">
-              <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">{editingId ? 'Update Product' : 'Create Product'}</button>
-              <button type="button" onClick={resetForm} className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 transition-colors">Cancel</button>
-            </div>
+  <button
+    type="submit"
+    disabled={submitting}
+    className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors"
+  >
+    {submitting ? 'Saving...' : editingId ? 'Update Product' : 'Create Product'}
+  </button>
+  <button
+    type="button"
+    onClick={resetForm}
+    disabled={submitting}
+    className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+  >
+    Cancel
+  </button>
+</div>
           </form>
         </div>
       )}

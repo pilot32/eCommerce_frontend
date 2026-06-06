@@ -8,7 +8,9 @@ import AdminLayout from './layout/AdminLayout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Categories from './pages/Categories';
+import Subcategories from './pages/Subcategories';
 import Products from './pages/Products';
+import CustomerHome from './pages/CustomerHome';
 
 function App() {
   return (
@@ -29,9 +31,18 @@ function App() {
               >
                 <Route index element={<Dashboard />} />
                 <Route path="categories" element={<Categories />} />
+                <Route path="subcategories" element={<Subcategories />} />
                 <Route path="products" element={<Products />} />
               </Route>
-              <Route path="*" element={<Navigate to="/admin" replace />} />
+              <Route
+                path="/customer"
+                element={
+                  <ProtectedRoute customerOnly>
+                    <CustomerHome />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="*" element={<Navigate to="/login" replace />} />
             </Routes>
           </ToastProvider>
         </CartProvider>
