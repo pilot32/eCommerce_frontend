@@ -73,54 +73,68 @@ export default function Products() {
     setSubcategories([]);
   };
   //hadler to manage the file upload function
-  const handleFileSelect = async(e)=>{
-    const files = Array.from(e.target.files);
-    if(files.length==0){
-      return 
+const handleFileSelect = (e) => {
+    const files = e.target.files;
+    //console.log('Raw e.target.files:', files);
+    //console.log('File count:', files.length);
+    if (!files || files.length === 0) return;
+    
+    const fileArray = [];
+    for (let i = 0; i < files.length; i++) {
+      fileArray.push(files[i]);
     }
-    await uploadFiles(files);
+    //console.log('File array:', fileArray.map(f => ({ name: f.name, size: f.size, type: f.type })));
+    uploadFiles(fileArray);
+};
 
-  }
-  //handler for drag and drop files
-  const handleDrop=async(e)=>{
+const handleDrop = (e) => {
     e.preventDefault();
-    e.stopPropogation();
-    const files = Array.form(e.dataTransfer.files).filter(f=>f.type.startsWith('/image'));
-    if(files.length==0){return}
-    await uploadFiles(files);
-  }
-  const handleDragOver = async (e) => {
+    e.stopPropagation();
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+    
+    const fileArray = [];
+    for (let i = 0; i < files.length; i++) {
+      if (files[i].type.startsWith('image/')) {
+        fileArray.push(files[i]);
+      }
+    }
+    //console.log('Dropped files:', fileArray.map(f => ({ name: f.name, size: f.size, type: f.type })));
+    uploadFiles(fileArray);
+};
+
+const handleDragOver = (e) => {
     e.preventDefault();
-    e.stopPropogation();
-  }
+    e.stopPropagation();
+};
 
 const uploadFiles = async (files) => {
+    //console.log('uploadFiles received:', files);
+    if (!Array.isArray(files) || files.length === 0) return;
+
     setUploading(true);
 
     try {
-      const res = await uploadImages(files);
-
-      // Direct extraction — matches your backend response exactly
       let urls = [];
-      const secureUrl = res.data?.result?.secure_url;
-      const httpUrl = res.data?.result?.url;
 
-      //console.log('secureUrl:', secureUrl);
-      //console.log('httpUrl:', httpUrl);
-
-      if (secureUrl) {
-        urls.push(secureUrl);
-      } else if (httpUrl) {
-        urls.push(httpUrl);
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+       // console.log('Uploading file:', file.name, file.size, file.type);
+        const res = await uploadImages(file);
+        const secureUrl = res.data?.result?.secure_url || res.data?.result?.url;
+        if (secureUrl) {
+          urls.push(secureUrl);
+        }
       }
 
-      //console.log('Final URLs array:', urls);
+      //console.log('Extracted URLs:', urls);
 
       if (urls.length > 0) {
-        setForm((prev) => ({
-          ...prev,
-          images: [...prev.images, ...urls],
-        }));
+        setForm((prev) => {
+          const updated = { ...prev, images: [...prev.images, ...urls] };
+          //console.log('Updated form.images:', updated.images);
+          return updated;
+        });
         addToast(`${urls.length} image(s) uploaded!`, 'success');
       } else {
         addToast('Upload succeeded but no URLs found', 'warning');
@@ -314,7 +328,7 @@ return (
                           onClick={() => removeImage(index)}
                           className="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                         >
-                          ×
+                          
                         </button>
                       </div>
                     ))}

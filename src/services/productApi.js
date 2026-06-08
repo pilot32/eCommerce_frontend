@@ -12,9 +12,9 @@ export const productApi = {
 
 //function to upload the images to backend->cloudinary->then frontend 
 
-export const uploadImages = (files) => {
+export const uploadImages = (file) => {
   const formData = new FormData();
-  files.forEach((file) => formData.append('images', file));
+  formData.append('image',file);  
   return api.post('/products/upload', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
