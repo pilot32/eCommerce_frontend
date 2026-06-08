@@ -94,31 +94,27 @@ export default function Products() {
     e.stopPropogation();
   }
 
-  const uploadFiles = async (files) => {
+const uploadFiles = async (files) => {
     setUploading(true);
 
     try {
       const res = await uploadImages(files);
-      console.log('Upload response:', res.data);
 
-      // Backend might return: { urls: [...] }, { images: [...] }, or just [...]
+      // Direct extraction — matches your backend response exactly
       let urls = [];
+      const secureUrl = res.data?.result?.secure_url;
+      const httpUrl = res.data?.result?.url;
 
-      if (Array.isArray(res.data)) {
-        urls = res.data;
-      } else if (res.data.urls) {
-        urls = res.data.urls;
-      } else if (res.data.images) {
-        urls = res.data.images;
-      } else if (res.data.url) {
-        urls = Array.isArray(res.data.url) ? res.data.url : [res.data.url];
-      } else if (res.data.result.secure_url) {
-        urls = Array.isArray(res.data.secure_url) ? res.data.secure_url : [res.data.secure_url];
-      } else {
-        console.log('Unknown response format:', res.data);
+      //console.log('secureUrl:', secureUrl);
+      //console.log('httpUrl:', httpUrl);
+
+      if (secureUrl) {
+        urls.push(secureUrl);
+      } else if (httpUrl) {
+        urls.push(httpUrl);
       }
 
-      console.log('Extracted URLs:', urls);
+      //console.log('Final URLs array:', urls);
 
       if (urls.length > 0) {
         setForm((prev) => ({
@@ -130,9 +126,8 @@ export default function Products() {
         addToast('Upload succeeded but no URLs found', 'warning');
       }
     } catch (err) {
-      console.log('UPLOAD ERROR:', err.message);
-      console.log('ERROR STATUS:', err.response?.status);
-      console.log('ERROR DATA:', err.response?.data);
+      //console.log('UPLOAD ERROR:', err.message);
+      //console.log('ERROR DATA:', err.response?.data);
       addToast('Image upload failed', 'error');
     } finally {
       setUploading(false);
