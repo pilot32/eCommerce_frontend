@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
-import { productApi } from '../services/productApi';
+import { useState, useEffect, useRef } from 'react';
+import { productApi} from '../services/productApi';
 import { categoryApi } from '../services/categoryApi';
 import { subcategoryApi } from '../services/subcategoryApi';
+import { useToast } from '../context/ToastContext';
+import { uploadImages } from '../services/productApi';
 
 const emptyForm = {
   name: '', description: '', categoryId: '', subcategoryId: '',
@@ -10,6 +12,8 @@ const emptyForm = {
 };
 
 export default function Products() {
+  const [submitting, setSubmitting] = useState(false);
+  const { addToast } = useToast();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subcategories, setSubcategories] = useState([]);
@@ -18,6 +22,9 @@ export default function Products() {
   const [editingId, setEditingId] = useState(null);
   const [error, setError] = useState('');
   const [form, setForm] = useState(emptyForm);
+  //file uploading state and function
+  const [uploading,setUploading]=useState(false);
+  const fileInputRef = useRef(null);
 
   const fetchProducts = async () => {
     try {
@@ -26,6 +33,7 @@ export default function Products() {
       setProducts(Array.isArray(data) ? data : []);
     } catch (err) {
       setError('Failed to fetch products');
+      addToast('Failed to fetch products', 'error');
     } finally {
       setLoading(false);
     }
@@ -64,29 +72,105 @@ export default function Products() {
     setError('');
     setSubcategories([]);
   };
+  //hadler to manage the file upload function
+  const handleFileSelect = async(e)=>{
+    const files = Array.from(e.target.files);
+    if(files.length==0){
+      return 
+    }
+    await uploadFiles(files);
 
+  }
+  //handler for drag and drop files
+  const handleDrop=async(e)=>{
+    e.preventDefault();
+    e.stopPropogation();
+    const files = Array.form(e.dataTransfer.files).filter(f=>f.type.startsWith('/image'));
+    if(files.length==0){return}
+    await uploadFiles(files);
+  }
+  const handleDragOver = async (e) => {
+    e.preventDefault();
+    e.stopPropogation();
+  }
+
+const uploadFiles = async (files) => {
+    setUploading(true);
+
+    try {
+      const res = await uploadImages(files);
+
+      // Direct extraction — matches your backend response exactly
+      let urls = [];
+      const secureUrl = res.data?.result?.secure_url;
+      const httpUrl = res.data?.result?.url;
+
+      //console.log('secureUrl:', secureUrl);
+      //console.log('httpUrl:', httpUrl);
+
+      if (secureUrl) {
+        urls.push(secureUrl);
+      } else if (httpUrl) {
+        urls.push(httpUrl);
+      }
+
+      //console.log('Final URLs array:', urls);
+
+      if (urls.length > 0) {
+        setForm((prev) => ({
+          ...prev,
+          images: [...prev.images, ...urls],
+        }));
+        addToast(`${urls.length} image(s) uploaded!`, 'success');
+      } else {
+        addToast('Upload succeeded but no URLs found', 'warning');
+      }
+    } catch (err) {
+      //console.log('UPLOAD ERROR:', err.message);
+      //console.log('ERROR DATA:', err.response?.data);
+      addToast('Image upload failed', 'error');
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+  const removeImage = (index) => {
+    setForm((prev) => ({
+      ...prev,
+      images: prev.images.filter((_, i) => i !== index),
+    }));
+  };
+
+  //handles to submit final
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    setSubmitting(true);
     const payload = {
       ...form,
       price: Number(form.price),
       stock: form.stock ? Number(form.stock) : undefined,
       discountedPrice: form.discountedPrice ? Number(form.discountedPrice) : undefined,
-      images: form.images ? form.images.split(',').map((url) => url.trim()).filter(Boolean) : [],
+      images: form.images,
       categoryId: form.categoryId || undefined,
       subcategoryId: form.subcategoryId || undefined,
     };
     try {
       if (editingId) {
         await productApi.update(editingId, payload);
+        addToast('Product updated successfully!', 'success');
       } else {
         await productApi.create(payload);
+        addToast('Product created successfully!', 'success');
       }
       resetForm();
       fetchProducts();
     } catch (err) {
-      setError(err.response?.data?.message || 'Operation failed');
+      const msg = err.response?.data?.message || 'Operation failed';
+      setError(msg);
+      addToast(msg, 'error');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -108,18 +192,24 @@ export default function Products() {
     if (!window.confirm('Are you sure you want to delete this product?')) return;
     try {
       await productApi.delete(id);
+      addToast('Product deleted successfully!', 'success');
       fetchProducts();
     } catch (err) {
-      setError(err.response?.data?.message || 'Delete failed');
+      const msg = err.response?.data?.message || 'Delete failed';
+      setError(msg);
+      addToast(msg, 'error');
     }
   };
 
   const handleToggleStatus = async (product) => {
     try {
       await productApi.updateStatus(product._id, { isActive: !product.isActive });
+      addToast(`Product marked as ${product.isActive ? 'inactive' : 'active'}`, 'success');
       fetchProducts();
     } catch (err) {
-      setError(err.response?.data?.message || 'Status update failed');
+      const msg = err.response?.data?.message || 'Status update failed';
+      setError(msg);
+      addToast(msg, 'error');
     }
   };
 
@@ -130,7 +220,7 @@ export default function Products() {
 
   if (loading) return <p className="text-gray-500">Loading products...</p>;
 
-  return (
+return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Products</h1>
@@ -183,10 +273,55 @@ export default function Products() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                 <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows="3" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
+
+              {/* IMAGE UPLOAD SECTION */}
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Image URLs (comma separated)</label>
-                <input type="text" value={form.images} onChange={(e) => setForm({ ...form, images: e.target.value })} placeholder="https://example.com/img1.jpg, https://example.com/img2.jpg" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Product Images</label>
+
+                {/* Drop zone */}
+                <div
+                  onDrop={handleDrop}
+                  onDragOver={handleDragOver}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-blue-400 transition-colors"
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileSelect}
+                    className="hidden"
+                  />
+                  {uploading ? (
+                    <p className="text-blue-500 text-sm">Uploading...</p>
+                  ) : (
+                    <>
+                      <p className="text-gray-500 text-sm">Click or drag images here to upload</p>
+                      <p className="text-gray-400 text-xs mt-1">PNG, JPG, WEBP up to 5MB</p>
+                    </>
+                  )}
+                </div>
+
+                {/* Image Previews */}
+                {form.images.length > 0 && (
+                  <div className="flex flex-wrap gap-3 mt-3">
+                    {form.images.map((url, index) => (
+                      <div key={index} className="relative group">
+                        <img src={url} alt={`Product ${index + 1}`} className="w-24 h-24 object-cover rounded-lg border" />
+                        <button
+                          type="button"
+                          onClick={() => removeImage(index)}
+                          className="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full text-xs flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
+
               <div className="flex gap-6">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input type="checkbox" checked={form.isActive} onChange={(e) => setForm({ ...form, isActive: e.target.checked })} className="w-4 h-4 text-blue-600 rounded" />
@@ -199,13 +334,18 @@ export default function Products() {
               </div>
             </div>
             <div className="flex gap-3">
-              <button type="submit" className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors">{editingId ? 'Update Product' : 'Create Product'}</button>
-              <button type="button" onClick={resetForm} className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 transition-colors">Cancel</button>
+              <button type="submit" disabled={submitting} className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors">
+                {submitting ? 'Saving...' : editingId ? 'Update Product' : 'Create Product'}
+              </button>
+              <button type="button" onClick={resetForm} disabled={submitting} className="bg-gray-200 text-gray-700 px-6 py-2 rounded-lg hover:bg-gray-300 disabled:cursor-not-allowed transition-colors">
+                Cancel
+              </button>
             </div>
           </form>
         </div>
       )}
 
+      {/* Products Table */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full">
@@ -266,4 +406,8 @@ export default function Products() {
       </div>
     </div>
   );
+
 }
+
+
+
