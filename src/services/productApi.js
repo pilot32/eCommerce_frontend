@@ -7,4 +7,15 @@ export const productApi = {
   update: (id, data) => api.patch(`/products/${id}`, data),
   updateStatus: (id, data) => api.patch(`/products/${id}/status`, data),
   delete: (id) => api.delete(`/products/${id}`),
+
+};
+
+//function to upload the images to backend->cloudinary->then frontend 
+
+export const uploadImages = (files) => {
+  const formData = new FormData();
+  files.forEach((file) => formData.append('images', file));
+  return api.post('/products/upload', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
 };
