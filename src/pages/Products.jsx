@@ -194,7 +194,12 @@ const uploadFiles = async (files) => {
       categoryId: product.categoryId || '', subcategoryId: product.subcategoryId || '',
       price: product.price || '', discountedPrice: product.discountedPrice || '',
       stock: product.stock || '',
-      images: Array.isArray(product.images) ? product.images.join(', ') : '',
+
+images: Array.isArray(product.images)
+  ? [...product.images]
+  : typeof product.images === 'string'
+    ? product.images.split(',').map(u => u.trim()).filter(Boolean)
+    : [],      
       isActive: product.isActive ?? true, featured: product.featured || false,
     });
     setEditingId(product._id);
