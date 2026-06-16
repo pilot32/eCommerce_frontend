@@ -1,11 +1,14 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import dashboardIcon from '../assets/icons/dashboard.svg';
+import categoriesIcon from '../assets/icons/categories.svg';
+import productsIcon from '../assets/icons/products.svg';
 
 const navItems = [
-  { path: '/admin', label: 'Dashboard', icon: '📊' },
-  { path: '/admin/categories', label: 'Categories', icon: '📁' },
-  { path: '/admin/subcategories', label: 'Subcategories', icon: '📁' },
-  { path: '/admin/products', label: 'Products', icon: '📦' },
+  { path: '/admin', label: 'Dashboard', icon: dashboardIcon },
+  { path: '/admin/categories', label: 'Categories', icon: categoriesIcon },
+  { path: '/admin/subcategories', label: 'Subcategories', icon: categoriesIcon },
+  { path: '/admin/products', label: 'Products', icon: productsIcon },
 ];
 
 export default function Sidebar() {
@@ -39,7 +42,7 @@ export default function Sidebar() {
                   }`
                 }
               >
-                <span>{item.icon}</span>
+                <img src={item.icon} alt={item.label} className="w-5 h-5 invert opacity-80" />
                 <span>{item.label}</span>
               </NavLink>
             </li>
