@@ -10,6 +10,7 @@ import Dashboard from './pages/Dashboard';
 import Categories from './pages/Categories';
 import Subcategories from './pages/Subcategories';
 import Products from './pages/Products';
+import Coupons from './pages/Coupons';
 import CustomerHome from './pages/CustomerHome';
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
                 <Route path="categories" element={<Categories />} />
                 <Route path="subcategories" element={<Subcategories />} />
                 <Route path="products" element={<Products />} />
+                <Route path="coupons" element={<Coupons />} />
               </Route>
               <Route
                 path="/customer"
