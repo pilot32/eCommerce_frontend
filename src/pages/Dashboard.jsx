@@ -1,22 +1,31 @@
 import { useState, useEffect } from 'react';
 import { categoryApi } from '../services/categoryApi';
 import { productApi } from '../services/productApi';
+import { couponApi } from '../services/couponApi';
 
 export default function Dashboard() {
-  const [stats, setStats] = useState({ categories: 0, products: 0, activeProducts: 0 });
+  const [stats, setStats] = useState({
+    categories: 0,
+    coupons: 0,
+    products: 0,
+    activeProducts: 0,
+  });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchStats() {
       try {
-        const [catRes, prodRes] = await Promise.all([
+        const [catRes, prodRes, couponRes] = await Promise.all([
           categoryApi.getAll(),
           productApi.getAll(),
+          couponApi.getAll(),
         ]);
         const categories = catRes.data.categories || catRes.data || [];
         const products = prodRes.data.products || prodRes.data || [];
+        const coupons = couponRes.data.coupons || couponRes.data || [];
         setStats({
           categories: Array.isArray(categories) ? categories.length : 0,
+          coupons: Array.isArray(coupons) ? coupons.length : 0,
           products: Array.isArray(products) ? products.length : 0,
           activeProducts: Array.isArray(products)
             ? products.filter((p) => p.isActive).length
@@ -37,9 +46,11 @@ export default function Dashboard() {
 
   const cards = [
     { label: 'Total Categories', value: stats.categories, color: 'bg-blue-500' },
+    { label: 'Total Coupons', value: stats.coupons, color: 'bg-teal-500' },
     { label: 'Total Products', value: stats.products, color: 'bg-green-500' },
     { label: 'Active Products', value: stats.activeProducts, color: 'bg-purple-500' },
     { label: 'Inactive Products', value: stats.products - stats.activeProducts, color: 'bg-orange-500' },
+
   ];
 
   return (

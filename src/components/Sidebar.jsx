@@ -3,12 +3,14 @@ import { useAuth } from '../context/AuthContext';
 import dashboardIcon from '../assets/icons/dashboard.svg';
 import categoriesIcon from '../assets/icons/categories.svg';
 import productsIcon from '../assets/icons/products.svg';
+import couponIcon from '../assets/icons/coupon.svg';
 
 const navItems = [
   { path: '/admin', label: 'Dashboard', icon: dashboardIcon },
   { path: '/admin/categories', label: 'Categories', icon: categoriesIcon },
   { path: '/admin/subcategories', label: 'Subcategories', icon: categoriesIcon },
   { path: '/admin/products', label: 'Products', icon: productsIcon },
+  { path: '/admin/coupons', label: 'Coupons', icon: couponIcon },
 ];
 
 export default function Sidebar() {
