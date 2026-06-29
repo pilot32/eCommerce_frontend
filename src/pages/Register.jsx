@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate, Navigate } from 'react-router-dom';
-import { Mail, Lock, ArrowLeft } from 'lucide-react';
+import { User, Mail, Lock, ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import Logo from '../components/ui/Logo';
@@ -9,41 +9,54 @@ import Button from '../components/ui/Button';
 import SmartImage from '../components/ui/SmartImage';
 
 /**
- * Standalone, brand-styled sign-in page (rendered outside StoreLayout).
- * Two-column split: a full-height fashion image on the left (lg+) and the
- * sign-in form on the right. Preserves the original admin role redirect.
+ * Standalone, brand-styled sign-up page (rendered outside StoreLayout).
+ * Mirrors the Login split layout; validates the password confirmation
+ * client-side before calling the shared register flow.
  */
-export default function Login() {
-  const { token, user, login, isAdmin } = useAuth();
+export default function Register() {
+  const { token, user, register, isAdmin } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
 
+  const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [remember, setRemember] = useState(true);
+  const [confirm, setConfirm] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Already signed in → send to the correct side.
+  // Already signed in → nothing to register.
   if (token && user) {
     return <Navigate to={isAdmin ? '/admin' : '/'} replace />;
   }
 
+  const validate = () => {
+    const errs = {};
+    if (password.length < 6) {
+      errs.password = 'Password must be at least 6 characters.';
+    }
+    if (confirm !== password) {
+      errs.confirm = 'Passwords do not match.';
+    }
+    setFieldErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (!validate()) return;
+
     setLoading(true);
-
     try {
-      const data = await login(email, password);
-      addToast('Welcome back!', 'success');
-
-      // Resolve role from the freshest source so admins always reach /admin.
-      const role = data?.user?.role || JSON.parse(localStorage.getItem('user') || '{}').role;
-      navigate(role === 'ADMIN' ? '/admin' : '/');
+      await register(name, email, password);
+      addToast('Account created! Please log in.', 'success');
+      navigate('/login');
     } catch (err) {
       const msg =
-        err?.response?.data?.message || 'Login failed. Please check your credentials.';
+        err?.response?.data?.message || 'Registration failed. Please try again.';
       setError(msg);
       addToast(msg, 'error');
     } finally {
@@ -56,8 +69,8 @@ export default function Login() {
       {/* Brand / imagery panel — hidden on small screens */}
       <aside className="relative hidden lg:block">
         <SmartImage
-          src="https://loremflickr.com/1200/1600/saree,indian,woman?lock=21"
-          alt="Woman in an elegant handcrafted Indian saree"
+          src="https://loremflickr.com/1200/1600/lehenga,indian,woman?lock=27"
+          alt="Woman wearing a richly embroidered Indian lehenga"
           className="h-full w-full"
         />
         <div className="absolute inset-0 bg-linear-to-t from-ink/85 via-ink/40 to-ink/20" />
@@ -71,8 +84,8 @@ export default function Login() {
               Handcrafted elegance, woven for you.
             </p>
             <p className="mt-4 text-sm leading-relaxed text-cream/80">
-              Sign in to revisit your wishlist, track orders and continue your
-              journey through India&rsquo;s finest ethnic wear.
+              Join Wornora to save your favourites, enjoy faster checkout and
+              be first to discover every new festive edit.
             </p>
           </div>
         </div>
@@ -94,13 +107,13 @@ export default function Login() {
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-md animate-fade-up py-10">
             <p className="font-accent text-xs uppercase tracking-[0.2em] text-gold-dark">
-              Welcome back
+              Join Wornora
             </p>
             <h1 className="mt-2 font-heading text-3xl text-ink sm:text-4xl">
-              Sign in to your account
+              Create your account
             </h1>
             <p className="mt-2 text-sm text-ink-mute">
-              Enter your details below to continue.
+              It only takes a moment to begin.
             </p>
 
             {error && (
@@ -113,6 +126,19 @@ export default function Login() {
             )}
 
             <form onSubmit={handleSubmit} className="mt-6 space-y-5" noValidate>
+              <Input
+                label="Full name"
+                id="name"
+                name="name"
+                type="text"
+                autoComplete="name"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="Your name"
+                leftIcon={<User size={18} aria-hidden="true" />}
+              />
+
               <Input
                 label="Email address"
                 id="email"
@@ -131,49 +157,53 @@ export default function Login() {
                 id="password"
                 name="password"
                 type="password"
-                autoComplete="current-password"
+                autoComplete="new-password"
                 required
+                minLength={6}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (fieldErrors.password) {
+                    setFieldErrors((prev) => ({ ...prev, password: undefined }));
+                  }
+                }}
+                placeholder="At least 6 characters"
+                hint={!fieldErrors.password ? 'Use 6 or more characters.' : undefined}
+                error={fieldErrors.password}
                 leftIcon={<Lock size={18} aria-hidden="true" />}
               />
 
-              <div className="flex items-center justify-between">
-                <label
-                  htmlFor="remember"
-                  className="flex cursor-pointer items-center gap-2 font-accent text-sm text-ink-soft"
-                >
-                  <input
-                    id="remember"
-                    name="remember"
-                    type="checkbox"
-                    checked={remember}
-                    onChange={(e) => setRemember(e.target.checked)}
-                    className="h-4 w-4 rounded-sm border-sand text-gold accent-gold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold/40"
-                  />
-                  Remember me
-                </label>
-                <a
-                  href="#"
-                  className="font-accent text-sm text-gold-dark transition-colors hover:text-gold"
-                >
-                  Forgot password?
-                </a>
-              </div>
+              <Input
+                label="Confirm password"
+                id="confirm"
+                name="confirm"
+                type="password"
+                autoComplete="new-password"
+                required
+                value={confirm}
+                onChange={(e) => {
+                  setConfirm(e.target.value);
+                  if (fieldErrors.confirm) {
+                    setFieldErrors((prev) => ({ ...prev, confirm: undefined }));
+                  }
+                }}
+                placeholder="Re-enter your password"
+                error={fieldErrors.confirm}
+                leftIcon={<Lock size={18} aria-hidden="true" />}
+              />
 
               <Button type="submit" fullWidth size="lg" loading={loading}>
-                {loading ? 'Signing in…' : 'Sign in'}
+                {loading ? 'Creating account…' : 'Create account'}
               </Button>
             </form>
 
             <p className="mt-8 text-center text-sm text-ink-mute">
-              New to Wornora?{' '}
+              Already have an account?{' '}
               <Link
-                to="/register"
+                to="/login"
                 className="font-accent font-semibold text-gold-dark transition-colors hover:text-gold"
               >
-                Create an account
+                Sign in
               </Link>
             </p>
           </div>
