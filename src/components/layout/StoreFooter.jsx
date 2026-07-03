@@ -15,7 +15,7 @@ export default function StoreFooter() {
   const handleSubscribe = (e) => {
     e.preventDefault();
     if (!email.trim()) return;
-    addToast('Thanks for subscribing to Wornora ✨', 'success');
+    addToast('Thanks for subscribing to Wornora!', 'success');
     setEmail('');
   };
 
