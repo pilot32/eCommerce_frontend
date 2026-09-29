@@ -44,7 +44,7 @@ export default function ProductInfo({ product, className }) {
   const wished = isWishlisted(product._id);
 
   /** Validate, then add to cart. Returns true when the item was added. */
-  const tryAddToCart = () => {
+  const tryAddToCart = async () => {
     if (!inStock) {
       addToast('This piece is currently out of stock', 'warning');
       return false;
@@ -53,18 +53,23 @@ export default function ProductInfo({ product, className }) {
       addToast('Please select a size', 'warning');
       return false;
     }
-    addToCart(product, quantity);
-    return true;
+    try {
+      await addToCart(product, quantity);
+      return true;
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Could not add item to cart', 'error');
+      return false;
+    }
   };
 
-  const handleAddToCart = () => {
-    if (tryAddToCart()) {
+  const handleAddToCart = async () => {
+    if (await tryAddToCart()) {
       addToast(`${product.name} added to cart`, 'success');
     }
   };
 
-  const handleBuyNow = () => {
-    if (tryAddToCart()) navigate('/cart');
+  const handleBuyNow = async () => {
+    if (await tryAddToCart()) navigate('/cart');
   };
 
   const handleWishlist = () => {

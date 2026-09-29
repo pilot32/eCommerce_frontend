@@ -51,8 +51,17 @@ export function isInStock(product) {
 export function normalizeProduct(raw) {
   if (!raw) return null;
   const name = raw.name || 'Untitled';
+  const rawCategory = raw.categoryId || raw.category;
+  const rawSubcategory = raw.subcategoryId || raw.subcategory;
+  const categoryName =
+    raw.categoryName ||
+    (rawCategory && typeof rawCategory === 'object' ? rawCategory.name : '');
+  const subcategoryName =
+    raw.subcategoryName ||
+    (rawSubcategory && typeof rawSubcategory === 'object' ? rawSubcategory.name : '');
   const category =
     raw.category ||
+    (rawCategory && typeof rawCategory === 'object' ? rawCategory.slug : '') ||
     (typeof raw.categoryName === 'string'
       ? slugify(raw.categoryName)
       : 'clothing');
@@ -70,11 +79,16 @@ export function normalizeProduct(raw) {
     slug: raw.slug || slugify(name),
     description: raw.description || '',
     category,
-    categoryName: raw.categoryName || (isJewellery ? 'Jewellery' : 'Clothing'),
-    subcategory: raw.subcategory || '',
-    subcategoryName: raw.subcategoryName || '',
-    categoryId: raw.categoryId,
-    subcategoryId: raw.subcategoryId,
+    categoryName: categoryName || (isJewellery ? 'Jewellery' : 'Clothing'),
+    subcategory:
+      raw.subcategory ||
+      (rawSubcategory && typeof rawSubcategory === 'object' ? rawSubcategory.slug : '') ||
+      '',
+    subcategoryName,
+    categoryId:
+      rawCategory && typeof rawCategory === 'object' ? rawCategory._id : raw.categoryId,
+    subcategoryId:
+      rawSubcategory && typeof rawSubcategory === 'object' ? rawSubcategory._id : raw.subcategoryId,
     price: Number(raw.price) || 0,
     discountedPrice:
       raw.discountedPrice != null && Number(raw.discountedPrice) > 0

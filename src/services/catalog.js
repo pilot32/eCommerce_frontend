@@ -15,7 +15,7 @@ export function loadCatalog({ force = false } = {}) {
   if (cache && !force) return cache;
 
   cache = productApi
-    .getAll({ limit: 1000 })
+    .getCustomerAll({ limit: 100 })
     .then((res) => {
       const raw = res.data?.products || res.data || [];
       const list = Array.isArray(raw) ? raw : [];

@@ -29,11 +29,15 @@ export default function ProductCard({ product, className }) {
     addToast(added ? 'Added to wishlist' : 'Removed from wishlist', added ? 'success' : 'info');
   };
 
-  const handleAdd = (e) => {
+  const handleAdd = async (e) => {
     e.preventDefault();
     if (!inStock) return;
-    addToCart(product, 1);
-    addToast(`${product.name} added to cart`, 'success');
+    try {
+      await addToCart(product, 1);
+      addToast(`${product.name} added to cart`, 'success');
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Could not add item to cart', 'error');
+    }
   };
 
   return (

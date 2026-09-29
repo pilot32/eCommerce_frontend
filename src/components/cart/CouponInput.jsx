@@ -24,7 +24,7 @@ export default function CouponInput({ onApply, applied }) {
     }
   };
 
-  if (applied?.coupon) {
+  if (applied?.code) {
     return (
       <div className="flex items-start gap-2 rounded-input border border-teal/40 bg-teal/5 px-3.5 py-3">
         <Check size={18} className="mt-0.5 shrink-0 text-teal" />

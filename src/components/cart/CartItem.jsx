@@ -29,9 +29,13 @@ export default function CartItem({ item }) {
     item.colors?.[0]?.name ||
     (item.sizes?.length ? `Sizes: ${item.sizes.join(', ')}` : '');
 
-  const handleRemove = () => {
-    removeFromCart(item._id);
-    addToast(`${item.name} removed from cart`, 'info');
+  const handleRemove = async () => {
+    try {
+      await removeFromCart(item._id);
+      addToast(`${item.name} removed from cart`, 'info');
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Could not remove item', 'error');
+    }
   };
 
   return (
@@ -84,7 +88,9 @@ export default function CartItem({ item }) {
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
             <QuantityStepper
               value={item.quantity}
-              onChange={(q) => updateQuantity(item._id, q)}
+              onChange={(q) => updateQuantity(item._id, q).catch((err) => {
+                addToast(err.response?.data?.message || 'Could not update quantity', 'error');
+              })}
               max={10}
               size="sm"
             />

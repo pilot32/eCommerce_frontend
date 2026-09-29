@@ -11,11 +11,12 @@ import { FREE_DELIVERY_THRESHOLD } from '../../constants/sampleData';
  * a free-delivery nudge, the checkout CTA and trust badges.
  * Presentational: all cart logic is owned by the Cart page.
  */
-export default function OrderSummary({ subtotal, coupon, onApplyCoupon, onCheckout }) {
+export default function OrderSummary({ subtotal, coupon, summary, onApplyCoupon, onCheckout }) {
   const discount = coupon?.discount || 0;
   const subtotalAfterDiscount = subtotal - discount;
-  const deliveryFee = getDeliveryFee(subtotalAfterDiscount);
-  const grandTotal = subtotalAfterDiscount + deliveryFee;
+  const hasBackendSummary = summary && Number(summary.subtotal) === Number(subtotal);
+  const deliveryFee = hasBackendSummary ? summary.shipping : getDeliveryFee(subtotalAfterDiscount);
+  const grandTotal = hasBackendSummary ? summary.grandTotal : subtotalAfterDiscount + deliveryFee;
 
   // How much more (after discount) unlocks free delivery.
   const freeDeliveryGap = FREE_DELIVERY_THRESHOLD - subtotalAfterDiscount;

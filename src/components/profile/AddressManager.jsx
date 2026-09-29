@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Plus, Pencil, Trash2, MapPin, Star } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
@@ -7,10 +7,11 @@ import Input from '../ui/Input';
 import Modal from '../ui/Modal';
 import EmptyState from '../ui/EmptyState';
 import { useToast } from '../../context/ToastContext';
-import { SAMPLE_ADDRESSES } from '../../constants/sampleData';
+import { useAuth } from '../../context/AuthContext';
+import { addressApi } from '../../services/addressApi';
 
 const EMPTY_FORM = {
-  label: '',
+  label: 'Home',
   name: '',
   phone: '',
   line: '',
@@ -19,18 +20,62 @@ const EMPTY_FORM = {
   pincode: '',
 };
 
-let tempId = 0;
+const normalizeAddress = (address) => ({
+  id: address._id,
+  label: address.addressType || 'Home',
+  name: address.fullName || '',
+  phone: address.phone || '',
+  line: address.addressLine1 || '',
+  addressLine2: address.addressLine2 || '',
+  city: address.city || '',
+  state: address.state || '',
+  pincode: address.postalCode || '',
+  country: address.country || 'India',
+  isDefault: Boolean(address.isDefault),
+});
+
+const toPayload = (form, isDefault) => ({
+  fullName: form.name,
+  phone: form.phone,
+  addressLine1: form.line,
+  addressLine2: form.addressLine2 || '',
+  city: form.city,
+  state: form.state,
+  postalCode: form.pincode,
+  country: form.country || 'India',
+  addressType: ['Home', 'Work', 'Other'].includes(form.label) ? form.label : 'Other',
+  ...(isDefault !== undefined ? { isDefault } : {}),
+});
 
 /**
- * Saved-address book. State is seeded from sample data and managed locally
- * (add / edit / delete / set-default) — no backend; each action toasts.
+ * Saved-address book backed by the address API.
  */
 export default function AddressManager() {
   const { addToast } = useToast();
-  const [addresses, setAddresses] = useState(SAMPLE_ADDRESSES);
+  const { token } = useAuth();
+  const [addresses, setAddresses] = useState([]);
+  const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
+
+  const loadAddresses = async () => {
+    if (!token) return;
+    setLoading(true);
+    try {
+      const response = await addressApi.getAll();
+      const list = response.data.addresses || response.data || [];
+      setAddresses(Array.isArray(list) ? list.map(normalizeAddress) : []);
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Could not load addresses', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadAddresses();
+  }, [token]);
 
   const openAdd = () => {
     setEditingId(null);
@@ -48,34 +93,54 @@ export default function AddressManager() {
   const handleChange = (field) => (e) =>
     setForm((prev) => ({ ...prev, [field]: e.target.value }));
 
-  const handleDelete = (id) => {
-    setAddresses((prev) => prev.filter((a) => a.id !== id));
-    addToast('Address removed', 'info');
-  };
-
-  const handleSetDefault = (id) => {
-    setAddresses((prev) => prev.map((a) => ({ ...a, isDefault: a.id === id })));
-    addToast('Default address updated', 'success');
-  };
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (editingId) {
-      setAddresses((prev) =>
-        prev.map((a) => (a.id === editingId ? { ...a, ...form } : a))
-      );
-      addToast('Address updated', 'success');
-    } else {
-      const newAddress = {
-        ...form,
-        id: `addr-new-${++tempId}`,
-        isDefault: addresses.length === 0,
-      };
-      setAddresses((prev) => [...prev, newAddress]);
-      addToast('Address added', 'success');
+  const handleDelete = async (id) => {
+    try {
+      await addressApi.delete(id);
+      await loadAddresses();
+      addToast('Address removed', 'info');
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Could not remove address', 'error');
     }
-    setOpen(false);
   };
+
+  const handleSetDefault = async (id) => {
+    try {
+      await addressApi.setDefault(id);
+      await loadAddresses();
+      addToast('Default address updated', 'success');
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Could not update default address', 'error');
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      if (editingId) {
+        await addressApi.update(editingId, toPayload(form));
+        addToast('Address updated', 'success');
+      } else {
+        await addressApi.create(toPayload(form, addresses.length === 0));
+        addToast('Address added', 'success');
+      }
+      await loadAddresses();
+      setOpen(false);
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Could not save address', 'error');
+    }
+  };
+
+  if (!token) {
+    return (
+      <EmptyState
+        icon="MapPin"
+        title="Sign in to manage addresses"
+        description="Your saved delivery addresses are linked to your account."
+        actionLabel="Sign In"
+        actionTo="/login"
+      />
+    );
+  }
 
   return (
     <div>
@@ -86,7 +151,9 @@ export default function AddressManager() {
         </Button>
       </div>
 
-      {addresses.length === 0 ? (
+      {loading ? (
+        <p className="text-ink-soft">Loading addresses...</p>
+      ) : addresses.length === 0 ? (
         <EmptyState
           icon="MapPin"
           title="No saved addresses"
@@ -169,7 +236,7 @@ export default function AddressManager() {
             label="Label"
             value={form.label}
             onChange={handleChange('label')}
-            placeholder="Home, Work…"
+            placeholder="Home, Work, Other"
             required
           />
           <Input
@@ -193,6 +260,12 @@ export default function AddressManager() {
             onChange={handleChange('line')}
             placeholder="House no., street, area"
             required
+          />
+          <Input
+            label="Address Line 2"
+            value={form.addressLine2 || ''}
+            onChange={handleChange('addressLine2')}
+            placeholder="Landmark, apartment, etc."
           />
           <div className="grid gap-4 sm:grid-cols-2">
             <Input

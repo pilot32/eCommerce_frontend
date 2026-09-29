@@ -32,6 +32,8 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Categories = lazy(() => import('./pages/Categories'));
 const Subcategories = lazy(() => import('./pages/Subcategories'));
 const Products = lazy(() => import('./pages/Products'));
+const HeroSlides = lazy(() => import('./pages/HeroSlides'));
+const PromoBanners = lazy(() => import('./pages/PromoBanners'));
 
 function App() {
   return (
@@ -75,6 +77,8 @@ function App() {
                     <Route path="categories" element={<Categories />} />
                     <Route path="subcategories" element={<Subcategories />} />
                     <Route path="products" element={<Products />} />
+                    <Route path="hero-slides" element={<HeroSlides />} />
+                    <Route path="promo-banners" element={<PromoBanners />} />
                   </Route>
                 </Routes>
               </Suspense>

@@ -24,7 +24,6 @@ api.interceptors.request.use(
 
 api.interceptors.response.use(
   (response) => {
-    // If the response is wrapped in backend's custom ApiResponse { statusCode, message, data }
     if (
       response.data &&
       typeof response.data === 'object' &&
@@ -34,36 +33,43 @@ api.interceptors.response.use(
       const { statusCode, message, data } = response.data;
       const url = response.config.url || '';
 
-      // We transform response.data to the raw data payload, but attach metadata and compatibility helper properties
-      if (data && (Array.isArray(data) || typeof data === 'object')) {
-        const transformed = data;
+      if (Array.isArray(data)) {
+        const transformed = [...data];
         transformed.statusCode = statusCode;
         transformed.message = message;
-        transformed.data = data;
 
-        if (Array.isArray(data)) {
-          if (url.includes('/categories')) {
-            transformed.categories = data;
-          } else if (url.includes('/products')) {
-            transformed.products = data;
-          } else if (url.includes('/subcategories')) {
-            transformed.subcategories = data;
-          } else if (url.includes('/cart')) {
-            transformed.cart = data;
-          } else if (url.includes('/coupons') || url.includes('/coupon')) {
-            transformed.coupons = data;
-          } else if (url.includes('/addresses')) {
-            transformed.addresses = data;
-          }
-        } else {
-          if (url.includes('/categories')) {
-            transformed.category = data;
-          } else if (url.includes('/products')) {
-            transformed.product = data;
-          } else if (url.includes('/subcategories')) {
-            transformed.subcategory = data;
-          }
+        if (url.includes('/categories')) {
+          transformed.categories = data;
+        } else if (url.includes('/products')) {
+          transformed.products = data;
+        } else if (url.includes('/subcategories')) {
+          transformed.subcategories = data;
+        } else if (url.includes('/cart')) {
+          transformed.cart = data;
+        } else if (url.includes('/coupons') || url.includes('/coupon')) {
+          transformed.coupons = data;
+        } else if (url.includes('/addresses')) {
+          transformed.addresses = data;
         }
+
+        response.data = transformed;
+      } else if (data && typeof data === 'object') {
+        const transformed = {
+          ...data,
+          statusCode,
+          message,
+        };
+
+        if (url.includes('/categories') && !transformed.category) {
+          transformed.category = data;
+        } else if (url.includes('/products') && !transformed.product) {
+          transformed.product = data;
+        } else if (url.includes('/subcategories') && !transformed.subcategory) {
+          transformed.subcategory = data;
+        } else if (url.includes('/addresses') && !transformed.address) {
+          transformed.address = data;
+        }
+
         response.data = transformed;
       }
     }

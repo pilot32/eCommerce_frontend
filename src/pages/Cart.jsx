@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import Container from '../components/ui/Container';
@@ -8,7 +7,6 @@ import CartItem from '../components/cart/CartItem';
 import OrderSummary from '../components/cart/OrderSummary';
 import { useCart } from '../context/CartContext';
 import { useToast } from '../context/ToastContext';
-import { applyCoupon } from '../utils/coupon';
 import { pluralize } from '../utils/format';
 
 /**
@@ -16,27 +14,21 @@ import { pluralize } from '../utils/format';
  * summary. Owns the applied-coupon state and the (mock) checkout flow.
  */
 export default function Cart() {
-  const { cart, clearCart, cartCount, cartTotal } = useCart();
+  const { cart, clearCart, cartCount, cartTotal, summary, coupon, applyCoupon } = useCart();
   const { addToast } = useToast();
   const navigate = useNavigate();
 
-  // Applied coupon: { discount, coupon, code } | null
-  const [coupon, setCoupon] = useState(null);
-
-  const handleApplyCoupon = (code) => {
-    const result = applyCoupon(code, cartTotal);
-    if (result.valid) {
-      setCoupon({ discount: result.discount, coupon: result.coupon, code: result.coupon.code });
-      addToast(result.message, 'success');
-    } else {
-      setCoupon(null);
-      addToast(result.message, 'error');
+  const handleApplyCoupon = async (code) => {
+    try {
+      const result = await applyCoupon(code);
+      addToast(`${result.code} applied`, 'success');
+    } catch (err) {
+      addToast(err.response?.data?.message || err.message || 'Invalid coupon code', 'error');
     }
   };
 
-  const handleClearCart = () => {
-    clearCart();
-    setCoupon(null);
+  const handleClearCart = async () => {
+    await clearCart();
     addToast('Cart cleared', 'info');
   };
 
@@ -119,6 +111,7 @@ export default function Cart() {
             <OrderSummary
               subtotal={cartTotal}
               coupon={coupon}
+              summary={summary}
               onApplyCoupon={handleApplyCoupon}
               onCheckout={handleCheckout}
             />
