@@ -1,12 +1,212 @@
 @import "tailwindcss";
 
-body {
-  margin: 0;
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* ============================================================
+   Wornora Design System — Tailwind v4 theme tokens
+   Utilities are generated from these vars, e.g.
+   --color-gold        -> bg-gold / text-gold / border-gold
+   --font-heading      -> font-heading
+   --radius-card       -> rounded-card
+   --shadow-lift       -> shadow-lift
+   --animate-fade-up   -> animate-fade-up
+   ============================================================ */
+@theme {
+  /* ---- Gold family ---- */
+  --color-gold: #c9a96e;
+  --color-gold-light: #e8d5a3;
+  --color-gold-dark: #b8944a;
+  --color-gold-glow: #f5e6c8;
+
+  /* ---- Beige / neutrals ---- */
+  --color-beige: #f5ede3;
+  --color-ivory: #faf6f0;
+  --color-cream: #fffdf7;
+  --color-sand: #e8ddd0;
+
+  /* ---- Accents ---- */
+  --color-maroon: #8b1a1a;
+  --color-terracotta: #d4836a;
+  --color-saffron: #e8a87c;
+  --color-teal: #2c6e6e;
+
+  /* ---- Text / ink ---- */
+  --color-ink: #2d2d2d;
+  --color-ink-soft: #6b5b4e;
+  --color-ink-mute: #9b8b7e;
+
+  /* ---- Typography ---- */
+  --font-heading: "Playfair Display", Georgia, serif;
+  --font-body: "Inter", system-ui, -apple-system, sans-serif;
+  --font-accent: "DM Sans", system-ui, sans-serif;
+
+  /* ---- Border radius ---- */
+  --radius-btn: 14px;
+  --radius-input: 14px;
+  --radius-card: 18px;
+  --radius-image: 20px;
+
+  /* ---- Shadows (warm-tinted) ---- */
+  --shadow-soft: 0 2px 12px rgba(107, 91, 78, 0.06);
+  --shadow-card: 0 8px 28px -12px rgba(107, 91, 78, 0.18);
+  --shadow-lift: 0 22px 44px -20px rgba(107, 91, 78, 0.32);
+  --shadow-gold: 0 10px 30px -10px rgba(201, 169, 110, 0.45);
+
+  /* ---- Animations ---- */
+  --animate-fade-in: fade-in 0.5s ease both;
+  --animate-fade-up: fade-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-fade-down: fade-down 0.5s ease both;
+  --animate-scale-in: scale-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  --animate-shimmer: shimmer 1.6s linear infinite;
+  --animate-marquee: marquee 28s linear infinite;
+  --animate-float: float 6s ease-in-out infinite;
 }
 
-#root {
-  min-height: 100vh;
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-down {
+  from { opacity: 0; transform: translateY(-12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes scale-in {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* ============================================================
+   Base styles
+   ============================================================ */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    font-family: var(--font-body);
+    color: var(--color-ink);
+    background-color: var(--color-ivory);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  #root {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-heading);
+    color: var(--color-ink);
+  }
+
+  /* Accessible, on-brand focus ring */
+  :focus-visible {
+    outline: 2px solid var(--color-gold-dark);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  /* Warm, slim scrollbar */
+  ::-webkit-scrollbar { width: 10px; height: 10px; }
+  ::-webkit-scrollbar-track { background: var(--color-beige); }
+  ::-webkit-scrollbar-thumb {
+    background: var(--color-gold-light);
+    border-radius: 999px;
+    border: 2px solid var(--color-beige);
+  }
+  ::-webkit-scrollbar-thumb:hover { background: var(--color-gold); }
+
+  ::selection {
+    background: var(--color-gold-glow);
+    color: var(--color-ink);
+  }
+
+  img { max-width: 100%; }
+}
+
+/* ============================================================
+   Reusable component classes (used across the design system)
+   ============================================================ */
+@layer components {
+  /* Skeleton shimmer surface */
+  .skeleton {
+    position: relative;
+    overflow: hidden;
+    background: var(--color-sand);
+  }
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.55),
+      transparent
+    );
+    background-size: 200% 100%;
+    animation: var(--animate-shimmer);
+  }
+
+  /* Decorative gold gradient text for hero / brand accents */
+  .text-gold-gradient {
+    background: linear-gradient(135deg, #b8944a 0%, #c9a96e 45%, #e8d5a3 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+
+  /* Subtle paisley-inspired warm radial backdrop */
+  .bg-heritage {
+    background-color: var(--color-ivory);
+    background-image:
+      radial-gradient(circle at 12% 18%, rgba(201, 169, 110, 0.12), transparent 38%),
+      radial-gradient(circle at 88% 82%, rgba(212, 131, 106, 0.1), transparent 42%);
+  }
+
+  /* Thin gold rule used as a heading flourish */
+  .rule-gold {
+    height: 1px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      var(--color-gold),
+      transparent
+    );
+  }
+}
+
+/* Respect reduced-motion preferences globally */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Hide scrollbar utility for horizontal rails */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }

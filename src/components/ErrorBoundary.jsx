@@ -1,4 +1,5 @@
 import { Component } from 'react';
+import warningIcon from '../assets/icons/warning.svg';
 
 export default class ErrorBoundary extends Component {
   constructor(props) {
@@ -28,7 +29,9 @@ export default class ErrorBoundary extends Component {
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50 p-8">
           <div className="bg-white rounded-lg shadow-lg p-8 max-w-lg w-full text-center">
-            <div className="text-6xl mb-4">⚠️</div>
+            <div className="mb-4 flex justify-center">
+              <img src={warningIcon} alt="Warning" className="w-16 h-16" />
+            </div>
             <h1 className="text-xl font-bold text-gray-900 mb-2">Something went wrong</h1>
             <p className="text-gray-500 mb-4">
               An unexpected error occurred. This has been logged to the console.

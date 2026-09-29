@@ -11,6 +11,12 @@ const navItems = [
   { path: '/admin/products', label: 'Products', icon: productsIcon },
 ];
 
+const homeContentItems = [
+  { path: '/admin/hero-slides', label: 'Hero Slides', icon: productsIcon },
+  { path: '/admin/promo-banners', label: 'Promo Banners', icon: productsIcon },
+];
+
+
 export default function Sidebar() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -27,7 +33,7 @@ export default function Sidebar() {
         <p className="text-gray-400 text-sm mt-1">Admin Panel</p>
       </div>
 
-      <nav className="flex-1 p-4">
+      <nav className="flex-1 p-4 overflow-y-auto">
         <ul className="space-y-2">
           {navItems.map((item) => (
             <li key={item.path}>
@@ -48,7 +54,34 @@ export default function Sidebar() {
             </li>
           ))}
         </ul>
+
+        {/* ── Home Content ── */}
+        <div className="mt-6 mb-2 px-4">
+          <p className="text-xs font-semibold text-gray-500 uppercase tracking-widest">
+            Home Content
+          </p>
+        </div>
+        <ul className="space-y-2">
+          {homeContentItems.map((item) => (
+            <li key={item.path}>
+              <NavLink
+                to={item.path}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                    isActive
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-300 hover:bg-gray-800 hover:text-white'
+                  }`
+                }
+              >
+                <img src={item.icon} alt={item.label} className="w-5 h-5 invert opacity-80" />
+                <span>{item.label}</span>
+              </NavLink>
+            </li>
+          ))}
+        </ul>
       </nav>
+
 
       <div className="p-4 border-t border-gray-700">
         <div className="mb-3 px-4">

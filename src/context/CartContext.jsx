@@ -1,20 +1,88 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { cartApi } from '../services/cartApi';
+import { useAuth } from './AuthContext';
+import { normalizeProduct } from '../utils/product';
 
 const CartContext = createContext(null);
 
+const normalizeCartItem = (item) => {
+  const product = item.productId && typeof item.productId === 'object'
+    ? item.productId
+    : item;
+  const normalized = normalizeProduct(product);
+
+  return {
+    ...normalized,
+    quantity: item.quantity || 1,
+    priceAddition: item.priceAddition,
+  };
+};
+
+const normalizeCartResponse = (data) => ({
+  cart: (data?.cart?.items || []).map(normalizeCartItem),
+  summary: data?.summary || { subtotal: 0, discount: 0, shipping: 0, grandTotal: 0 },
+  appliedCoupon: data?.cart?.appliedCoupon
+    ? {
+        code: data.cart.appliedCoupon,
+        discount: data?.summary?.discount || 0,
+      }
+    : null,
+});
+
 export function CartProvider({ children }) {
+  const { token, loading: authLoading } = useAuth();
   const [cart, setCart] = useState([]);
+  const [summary, setSummary] = useState({ subtotal: 0, discount: 0, shipping: 0, grandTotal: 0 });
+  const [coupon, setCoupon] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (token || authLoading) return;
     const savedCart = localStorage.getItem('cart');
-    if (savedCart) setCart(JSON.parse(savedCart));
-  }, []);
+    setCart(savedCart ? JSON.parse(savedCart) : []);
+    setSummary({ subtotal: 0, discount: 0, shipping: 0, grandTotal: 0 });
+    setCoupon(null);
+  }, [token, authLoading]);
 
   useEffect(() => {
+    if (token) return;
     localStorage.setItem('cart', JSON.stringify(cart));
-  }, [cart]);
+  }, [cart, token]);
 
-  const addToCart = (product, quantity = 1) => {
+  const applyBackendCart = (data) => {
+    const normalized = normalizeCartResponse(data);
+    setCart(normalized.cart);
+    setSummary(normalized.summary);
+    setCoupon(normalized.appliedCoupon);
+    return normalized;
+  };
+
+  const refreshCart = async () => {
+    if (!token) return null;
+    setLoading(true);
+    try {
+      const response = await cartApi.get();
+      return applyBackendCart(response.data);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!token || authLoading) return;
+    refreshCart().catch(() => {
+      setCart([]);
+      setSummary({ subtotal: 0, discount: 0, shipping: 0, grandTotal: 0 });
+      setCoupon(null);
+    });
+  }, [token, authLoading]);
+
+  const addToCart = async (product, quantity = 1) => {
+    if (token) {
+      const response = await cartApi.add({ productId: product._id, quantity });
+      return applyBackendCart(response.data);
+    }
+
     setCart((prev) => {
       const existing = prev.find((item) => item._id === product._id);
       if (existing) {
@@ -28,26 +96,80 @@ export function CartProvider({ children }) {
     });
   };
 
-  const removeFromCart = (productId) => {
+  const removeFromCart = async (productId) => {
+    if (token) {
+      const response = await cartApi.remove(productId);
+      return applyBackendCart(response.data);
+    }
+
     setCart((prev) => prev.filter((item) => item._id !== productId));
   };
 
-  const updateQuantity = (productId, quantity) => {
+  const updateQuantity = async (productId, quantity) => {
     if (quantity <= 0) { removeFromCart(productId); return; }
+
+    if (token) {
+      const response = await cartApi.updateQuantity(productId, { quantity });
+      return applyBackendCart(response.data);
+    }
+
     setCart((prev) =>
       prev.map((item) => item._id === productId ? { ...item, quantity } : item)
     );
   };
 
-  const clearCart = () => setCart([]);
+  const clearCart = async () => {
+    if (token) {
+      const response = await cartApi.clear();
+      return applyBackendCart(response.data);
+    }
+
+    setCart([]);
+    setCoupon(null);
+  };
+
+  const applyCoupon = async (code) => {
+    if (!token) {
+      throw new Error('Please sign in to apply coupons');
+    }
+
+    const response = await cartApi.applyCoupon({ code });
+    const normalized = applyBackendCart(response.data);
+    const applied = response.data.coupon || normalized.appliedCoupon;
+    setCoupon(applied);
+    return applied;
+  };
+
+  const removeCoupon = async () => {
+    if (!token) return null;
+    const response = await cartApi.removeCoupon();
+    return applyBackendCart(response.data);
+  };
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-  const cartTotal = cart.reduce(
+  const localTotal = cart.reduce(
     (sum, item) => sum + (item.discountedPrice || item.price) * item.quantity, 0
   );
+  const cartTotal = token ? summary.subtotal : localTotal;
 
   return (
-    <CartContext.Provider value={{ cart, addToCart, removeFromCart, updateQuantity, clearCart, cartCount, cartTotal }}>
+    <CartContext.Provider
+      value={{
+        cart,
+        summary,
+        coupon,
+        loading,
+        refreshCart,
+        addToCart,
+        removeFromCart,
+        updateQuantity,
+        clearCart,
+        applyCoupon,
+        removeCoupon,
+        cartCount,
+        cartTotal,
+      }}
+    >
       {children}
     </CartContext.Provider>
   );
