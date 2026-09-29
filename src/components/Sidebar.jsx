@@ -9,6 +9,7 @@ const navItems = [
   { path: '/admin/categories', label: 'Categories', icon: categoriesIcon },
   { path: '/admin/subcategories', label: 'Subcategories', icon: categoriesIcon },
   { path: '/admin/products', label: 'Products', icon: productsIcon },
+  { path: '/admin/orders', label: 'Orders', icon: productsIcon },
 ];
 
 const homeContentItems = [

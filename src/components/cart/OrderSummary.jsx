@@ -11,7 +11,15 @@ import { FREE_DELIVERY_THRESHOLD } from '../../constants/sampleData';
  * a free-delivery nudge, the checkout CTA and trust badges.
  * Presentational: all cart logic is owned by the Cart page.
  */
-export default function OrderSummary({ subtotal, coupon, summary, onApplyCoupon, onCheckout }) {
+export default function OrderSummary({
+  subtotal,
+  coupon,
+  summary,
+  onApplyCoupon,
+  onCheckout,
+  checkoutLabel = 'Proceed to Checkout',
+  checkoutDisabled = false,
+}) {
   const discount = coupon?.discount || 0;
   const subtotalAfterDiscount = subtotal - discount;
   const hasBackendSummary = summary && Number(summary.subtotal) === Number(subtotal);
@@ -82,8 +90,9 @@ export default function OrderSummary({ subtotal, coupon, summary, onApplyCoupon,
         className="mt-5"
         leftIcon={<ShoppingBag size={18} />}
         onClick={onCheckout}
+        disabled={checkoutDisabled}
       >
-        Proceed to Checkout
+        {checkoutLabel}
       </Button>
 
       {/* Trust badges */}

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { User, Package, Heart, MapPin, LogOut, ArrowRight } from 'lucide-react';
 import Container from '../components/ui/Container';
 import Card from '../components/ui/Card';
@@ -12,7 +12,8 @@ import AddressManager from '../components/profile/AddressManager';
 import { useAuth } from '../context/AuthContext';
 import { useWishlist } from '../context/WishlistContext';
 import { useToast } from '../context/ToastContext';
-import { SAMPLE_USER, SAMPLE_ORDERS } from '../constants/sampleData';
+import { orderApi } from '../services/orderApi';
+import { SAMPLE_USER } from '../constants/sampleData';
 import { pluralize } from '../utils/format';
 import { cn } from '../utils/cn';
 
@@ -29,14 +30,56 @@ const TABS = [
  * always reviewable even when no one is signed in.
  */
 export default function Profile() {
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
   const { items, wishlistCount } = useWishlist();
   const { addToast } = useToast();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState('profile');
+  const initialTab = TABS.some((tab) => tab.id === searchParams.get('tab'))
+    ? searchParams.get('tab')
+    : 'profile';
+  const [activeTab, setActiveTab] = useState(initialTab);
+  const [orders, setOrders] = useState([]);
+  const [ordersLoading, setOrdersLoading] = useState(false);
 
   const displayUser = user || SAMPLE_USER;
+
+  useEffect(() => {
+    const requestedTab = searchParams.get('tab');
+    if (TABS.some((tab) => tab.id === requestedTab)) {
+      setActiveTab(requestedTab);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!token || activeTab !== 'orders') return;
+
+    let active = true;
+    const loadOrders = async () => {
+      setOrdersLoading(true);
+      try {
+        const response = await orderApi.getMine();
+        const list = response.data.orders || response.data || [];
+        if (active) setOrders(Array.isArray(list) ? list : []);
+      } catch (err) {
+        if (active) {
+          setOrders([]);
+          addToast(err.response?.data?.message || 'Could not load orders', 'error');
+        }
+      } finally {
+        if (active) setOrdersLoading(false);
+      }
+    };
+
+    loadOrders();
+    return () => { active = false; };
+  }, [token, activeTab]);
+
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    setSearchParams(tabId === 'profile' ? {} : { tab: tabId });
+  };
 
   const handleLogout = () => {
     logout();
@@ -66,7 +109,7 @@ export default function Profile() {
                 <li key={tab.id} className="shrink-0">
                   <button
                     type="button"
-                    onClick={() => setActiveTab(tab.id)}
+                    onClick={() => handleTabChange(tab.id)}
                     aria-current={isActive ? 'page' : undefined}
                     className={cn(
                       'flex h-11 w-full items-center gap-3 whitespace-nowrap rounded-btn px-4 font-accent text-sm font-medium transition-colors',
@@ -99,7 +142,9 @@ export default function Profile() {
         <div className="min-w-0">
           {activeTab === 'profile' && <ProfileInfo user={displayUser} />}
 
-          {activeTab === 'orders' && <OrderHistory orders={SAMPLE_ORDERS} />}
+          {activeTab === 'orders' && (
+            <OrderHistory orders={orders} loading={ordersLoading} signedIn={Boolean(token)} />
+          )}
 
           {activeTab === 'wishlist' && (
             <section aria-label="Wishlist preview">

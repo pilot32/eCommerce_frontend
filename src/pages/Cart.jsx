@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import Container from '../components/ui/Container';
@@ -6,7 +7,10 @@ import EmptyState from '../components/ui/EmptyState';
 import CartItem from '../components/cart/CartItem';
 import OrderSummary from '../components/cart/OrderSummary';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
+import { addressApi } from '../services/addressApi';
+import { orderApi } from '../services/orderApi';
 import { pluralize } from '../utils/format';
 
 /**
@@ -14,9 +18,36 @@ import { pluralize } from '../utils/format';
  * summary. Owns the applied-coupon state and the (mock) checkout flow.
  */
 export default function Cart() {
-  const { cart, clearCart, cartCount, cartTotal, summary, coupon, applyCoupon } = useCart();
+  const { cart, clearCart, refreshCart, cartCount, cartTotal, summary, coupon, applyCoupon } = useCart();
+  const { token } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
+  const [defaultAddress, setDefaultAddress] = useState(null);
+  const [addressLoading, setAddressLoading] = useState(false);
+  const [placingOrder, setPlacingOrder] = useState(false);
+
+  useEffect(() => {
+    if (!token || cart.length === 0) {
+      setDefaultAddress(null);
+      return;
+    }
+
+    let active = true;
+    const loadDefaultAddress = async () => {
+      setAddressLoading(true);
+      try {
+        const response = await addressApi.getDefault();
+        if (active) setDefaultAddress(response.data.address || response.data || null);
+      } catch (err) {
+        if (active) setDefaultAddress(null);
+      } finally {
+        if (active) setAddressLoading(false);
+      }
+    };
+
+    loadDefaultAddress();
+    return () => { active = false; };
+  }, [token, cart.length]);
 
   const handleApplyCoupon = async (code) => {
     try {
@@ -32,10 +63,34 @@ export default function Cart() {
     addToast('Cart cleared', 'info');
   };
 
-  const handleCheckout = () => {
-    addToast('Order placed successfully!', 'success');
-    clearCart();
-    navigate('/profile');
+  const handleCheckout = async () => {
+    if (!token) {
+      addToast('Please sign in to place your order', 'error');
+      navigate('/login');
+      return;
+    }
+
+    if (!defaultAddress?._id) {
+      addToast('Add a default delivery address before checkout', 'error');
+      navigate('/profile?tab=addresses');
+      return;
+    }
+
+    setPlacingOrder(true);
+    try {
+      const response = await orderApi.create({
+        shippingAddressId: defaultAddress._id,
+        paymentMethod: 'COD',
+      });
+      const order = response.data.order || response.data;
+      await refreshCart();
+      addToast(`Order ${order.orderNumber || ''} placed successfully`, 'success');
+      navigate('/profile?tab=orders');
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Could not place order', 'error');
+    } finally {
+      setPlacingOrder(false);
+    }
   };
 
   // ---- Empty state ----
@@ -108,12 +163,49 @@ export default function Cart() {
         {/* Summary */}
         <aside className="lg:col-span-1">
           <div className="lg:sticky lg:top-28">
+            <div className="mb-4 rounded-card border border-sand bg-white p-4 shadow-soft">
+              <p className="font-accent text-xs uppercase tracking-[0.18em] text-gold-dark">
+                Delivery Address
+              </p>
+              {!token ? (
+                <p className="mt-2 text-sm text-ink-soft">
+                  Sign in to use saved addresses and place a COD order.
+                </p>
+              ) : addressLoading ? (
+                <p className="mt-2 text-sm text-ink-soft">Loading address...</p>
+              ) : defaultAddress ? (
+                <div className="mt-2 text-sm text-ink-soft">
+                  <p className="font-medium text-ink">{defaultAddress.fullName}</p>
+                  <p>{defaultAddress.addressLine1}</p>
+                  {defaultAddress.addressLine2 && <p>{defaultAddress.addressLine2}</p>}
+                  <p>
+                    {defaultAddress.city}, {defaultAddress.state} {defaultAddress.postalCode}
+                  </p>
+                  <p className="mt-1 text-ink-mute">{defaultAddress.phone}</p>
+                </div>
+              ) : (
+                <div className="mt-2">
+                  <p className="text-sm text-ink-soft">
+                    Add a default address before placing your COD order.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => navigate('/profile?tab=addresses')}
+                    className="mt-2 font-accent text-sm font-semibold text-gold-dark hover:text-ink"
+                  >
+                    Manage addresses
+                  </button>
+                </div>
+              )}
+            </div>
             <OrderSummary
               subtotal={cartTotal}
               coupon={coupon}
               summary={summary}
               onApplyCoupon={handleApplyCoupon}
               onCheckout={handleCheckout}
+              checkoutLabel={placingOrder ? 'Placing Order...' : 'Place COD Order'}
+              checkoutDisabled={placingOrder || addressLoading}
             />
           </div>
         </aside>
