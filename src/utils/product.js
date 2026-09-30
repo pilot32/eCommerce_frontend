@@ -65,7 +65,8 @@ export function normalizeProduct(raw) {
     (typeof raw.categoryName === 'string'
       ? slugify(raw.categoryName)
       : 'clothing');
-  const isJewellery = category === 'jewellery';
+  const normalizedCategory = category === 'jewelry' ? 'jewellery' : category;
+  const isJewellery = normalizedCategory === 'jewellery';
 
   const images = Array.isArray(raw.images)
     ? raw.images.filter(Boolean)
@@ -78,7 +79,7 @@ export function normalizeProduct(raw) {
     name,
     slug: raw.slug || slugify(name),
     description: raw.description || '',
-    category,
+    category: normalizedCategory,
     categoryName: categoryName || (isJewellery ? 'Jewellery' : 'Clothing'),
     subcategory:
       raw.subcategory ||

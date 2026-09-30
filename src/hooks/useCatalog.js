@@ -7,16 +7,18 @@ import { loadCatalog } from '../services/catalog';
  *
  * @returns {{ products: object[], loading: boolean, error: Error|null }}
  */
-export function useCatalog() {
+export function useCatalog(options = {}) {
+  const { params } = options;
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const paramsKey = JSON.stringify(params || {});
 
   useEffect(() => {
     let active = true;
     setLoading(true);
 
-    loadCatalog()
+    loadCatalog({ params })
       .then((list) => {
         if (!active) return;
         setProducts(list);
@@ -32,7 +34,7 @@ export function useCatalog() {
     return () => {
       active = false;
     };
-  }, []);
+  }, [paramsKey]);
 
   return { products, loading, error };
 }

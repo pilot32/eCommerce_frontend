@@ -9,7 +9,7 @@ import { pluralize } from '../utils/format';
  * heart toggle on each ProductCard. Shows a friendly empty state when bare.
  */
 export default function Wishlist() {
-  const { items, wishlistCount } = useWishlist();
+  const { items, wishlistCount, loading } = useWishlist();
 
   return (
     <Container className="py-10 sm:py-14">
@@ -23,7 +23,9 @@ export default function Wishlist() {
         )}
       </header>
 
-      {wishlistCount === 0 ? (
+      {loading ? (
+        <p className="text-ink-soft">Loading wishlist...</p>
+      ) : wishlistCount === 0 ? (
         <EmptyState
           icon="Heart"
           title="Your wishlist is empty"

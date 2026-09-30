@@ -3,6 +3,30 @@ import { useCatalog } from './useCatalog';
 import { filterProducts, sortProducts } from '../utils/product';
 import { PRODUCTS_PER_PAGE } from '../constants/shop';
 
+const sortToBackendParams = (sort) => {
+  switch (sort) {
+    case 'newest':
+      return { sortBy: 'createdAt', sortOrder: 'desc' };
+    case 'price-asc':
+      return { sortBy: 'price', sortOrder: 'asc' };
+    case 'price-desc':
+      return { sortBy: 'price', sortOrder: 'desc' };
+    case 'rating':
+      return { sortBy: 'averageRating', sortOrder: 'desc' };
+    default:
+      return { sortBy: 'createdAt', sortOrder: 'desc' };
+  }
+};
+
+const buildBackendParams = (filters, sort, limit) => ({
+  limit,
+  search: filters.search || undefined,
+  minPrice: filters.minPrice,
+  maxPrice: filters.maxPrice,
+  inStock: filters.inStockOnly || undefined,
+  ...sortToBackendParams(sort),
+});
+
 /**
  * Catalogue + client-side filtering, sorting and infinite-scroll pagination.
  * The Shop page drives this with its filter/sort state.
@@ -13,7 +37,11 @@ import { PRODUCTS_PER_PAGE } from '../constants/shop';
  * @param {number} [options.pageSize]
  */
 export function useShopProducts({ filters, sort = 'featured', pageSize = PRODUCTS_PER_PAGE }) {
-  const { products: all, loading, error } = useCatalog();
+  const backendParams = useMemo(
+    () => buildBackendParams(filters, sort, 100),
+    [filters, sort]
+  );
+  const { products: all, loading, error } = useCatalog({ params: backendParams });
   const [visibleCount, setVisibleCount] = useState(pageSize);
   const [loadingMore, setLoadingMore] = useState(false);
 
