@@ -23,10 +23,14 @@ export default function ProductCard({ product, className }) {
   const discount = getDiscountPercent(product);
   const inStock = isInStock(product);
 
-  const handleWishlist = (e) => {
+  const handleWishlist = async (e) => {
     e.preventDefault();
-    const added = toggleWishlist(product);
-    addToast(added ? 'Added to wishlist' : 'Removed from wishlist', added ? 'success' : 'info');
+    try {
+      const added = await toggleWishlist(product);
+      addToast(added ? 'Added to wishlist' : 'Removed from wishlist', added ? 'success' : 'info');
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Could not update wishlist', 'error');
+    }
   };
 
   const handleAdd = async (e) => {

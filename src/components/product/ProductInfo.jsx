@@ -72,9 +72,13 @@ export default function ProductInfo({ product, className }) {
     if (await tryAddToCart()) navigate('/cart');
   };
 
-  const handleWishlist = () => {
-    const added = toggleWishlist(product);
-    addToast(added ? 'Added to wishlist' : 'Removed from wishlist', added ? 'success' : 'info');
+  const handleWishlist = async () => {
+    try {
+      const added = await toggleWishlist(product);
+      addToast(added ? 'Added to wishlist' : 'Removed from wishlist', added ? 'success' : 'info');
+    } catch (err) {
+      addToast(err.response?.data?.message || 'Could not update wishlist', 'error');
+    }
   };
 
   return (
