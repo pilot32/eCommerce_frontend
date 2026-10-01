@@ -30,6 +30,10 @@ function Point({ children }) {
   );
 }
 
+function AttributeValue({ children }) {
+  return children || 'Not specified';
+}
+
 /**
  * Tabbed detail panel beneath the product columns — Description (with a small
  * spec list), Delivery and Returns. Accessible tab pattern: each tab button
@@ -84,23 +88,21 @@ export default function ProductTabs({ product, className }) {
                 'A thoughtfully crafted piece from the Wornora collection, made to celebrate timeless Indian elegance.'}
             </p>
             <dl className="mt-6 max-w-md">
-              {product.material && <Spec label="Material" value={product.material} />}
+              <Spec label="Material" value={<AttributeValue>{product.material}</AttributeValue>} />
               <Spec label="Category" value={product.categoryName} />
               {product.subcategoryName && <Spec label="Subcategory" value={product.subcategoryName} />}
-              {product.style && <Spec label="Style" value={product.style} />}
-              {product.colors?.length > 0 && (
-                <Spec label="Colors" value={product.colors.map((color) => color.name).join(', ')} />
-              )}
-              {product.sizes?.length > 0 && <Spec label="Sizes" value={product.sizes.join(', ')} />}
-              {product.tags?.length > 0 && <Spec label="Tags" value={product.tags.join(', ')} />}
+              <Spec label="Style" value={<AttributeValue>{product.style}</AttributeValue>} />
+              <Spec label="Colors" value={<AttributeValue>{product.colors?.map((color) => color.name).join(', ')}</AttributeValue>} />
+              <Spec label="Sizes" value={<AttributeValue>{product.sizes?.join(', ')}</AttributeValue>} />
+              <Spec label="Tags" value={<AttributeValue>{product.tags?.join(', ')}</AttributeValue>} />
               <Spec label="Availability" value={inStock ? 'In stock' : 'Out of stock'} />
             </dl>
-            {product.careInstructions && (
-              <div className="mt-6 max-w-prose rounded-card border border-sand/60 bg-ivory p-4">
-                <p className="font-accent text-sm font-semibold text-ink">Care Instructions</p>
-                <p className="mt-2 text-sm leading-relaxed text-ink-soft">{product.careInstructions}</p>
-              </div>
-            )}
+            <div className="mt-6 max-w-prose rounded-card border border-sand/60 bg-ivory p-4">
+              <p className="font-accent text-sm font-semibold text-ink">Care Instructions</p>
+              <p className="mt-2 text-sm leading-relaxed text-ink-soft">
+                {product.careInstructions || 'Not specified'}
+              </p>
+            </div>
           </div>
         )}
 
