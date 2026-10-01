@@ -7,9 +7,26 @@ import { uploadImages } from '../services/productApi';
 
 const emptyForm = {
   name: '', description: '', categoryId: '', subcategoryId: '',
-  price: '', discountedPrice: '', stock: '', images: '',
+  price: '', discountedPrice: '', stock: '', images: [],
+  style: '', material: '', colors: [], sizes: '', tags: '', careInstructions: '',
   isActive: true, featured: false,
 };
+
+const toCsv = (value) => Array.isArray(value) ? value.join(', ') : value || '';
+
+const fromCsv = (value) => (value || '')
+  .split(',')
+  .map((item) => item.trim())
+  .filter(Boolean);
+
+const normalizeColors = (colors) => Array.isArray(colors)
+  ? colors.map((color) => ({
+      name: color.name || '',
+      hex: color.hex || '',
+    }))
+  : [];
+
+const getId = (value) => value && typeof value === 'object' ? value._id : value;
 
 export default function Products() {
   const [submitting, setSubmitting] = useState(false);
@@ -155,6 +172,29 @@ const uploadFiles = async (files) => {
     }));
   };
 
+  const addColor = () => {
+    setForm((prev) => ({
+      ...prev,
+      colors: [...prev.colors, { name: '', hex: '' }],
+    }));
+  };
+
+  const updateColor = (index, field, value) => {
+    setForm((prev) => ({
+      ...prev,
+      colors: prev.colors.map((color, i) => (
+        i === index ? { ...color, [field]: value } : color
+      )),
+    }));
+  };
+
+  const removeColor = (index) => {
+    setForm((prev) => ({
+      ...prev,
+      colors: prev.colors.filter((_, i) => i !== index),
+    }));
+  };
+
   //handles to submit final
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -168,6 +208,17 @@ const uploadFiles = async (files) => {
       images: form.images,
       categoryId: form.categoryId || undefined,
       subcategoryId: form.subcategoryId || undefined,
+      style: form.style.trim(),
+      material: form.material.trim(),
+      colors: form.colors
+        .map((color) => ({
+          name: color.name.trim(),
+          hex: color.hex.trim(),
+        }))
+        .filter((color) => color.name),
+      sizes: fromCsv(form.sizes),
+      tags: fromCsv(form.tags),
+      careInstructions: form.careInstructions.trim(),
     };
     try {
       if (editingId) {
@@ -191,20 +242,26 @@ const uploadFiles = async (files) => {
   const handleEdit = (product) => {
     setForm({
       name: product.name || '', description: product.description || '',
-      categoryId: product.categoryId || '', subcategoryId: product.subcategoryId || '',
+      categoryId: getId(product.categoryId) || '', subcategoryId: getId(product.subcategoryId) || '',
       price: product.price || '', discountedPrice: product.discountedPrice || '',
       stock: product.stock || '',
 
-images: Array.isArray(product.images)
-  ? [...product.images]
-  : typeof product.images === 'string'
-    ? product.images.split(',').map(u => u.trim()).filter(Boolean)
-    : [],      
+      images: Array.isArray(product.images)
+        ? [...product.images]
+        : typeof product.images === 'string'
+          ? product.images.split(',').map(u => u.trim()).filter(Boolean)
+          : [],
+      style: product.style || '',
+      material: product.material || '',
+      colors: normalizeColors(product.colors),
+      sizes: toCsv(product.sizes),
+      tags: toCsv(product.tags),
+      careInstructions: product.careInstructions || '',
       isActive: product.isActive ?? true, featured: product.featured || false,
     });
     setEditingId(product._id);
     setShowForm(true);
-    if (product.categoryId) fetchSubcategories(product.categoryId);
+    if (getId(product.categoryId)) fetchSubcategories(getId(product.categoryId));
   };
 
   const handleDelete = async (id) => {
@@ -233,7 +290,8 @@ images: Array.isArray(product.images)
   };
 
   const getCategoryName = (catId) => {
-    const cat = categories.find((c) => c._id === catId);
+    const id = getId(catId);
+    const cat = categories.find((c) => c._id === id);
     return cat ? cat.name : '-';
   };
 
@@ -291,6 +349,48 @@ return (
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
                 <textarea value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} rows="3" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Style / Type</label>
+                <input type="text" value={form.style} onChange={(e) => setForm({ ...form, style: e.target.value })} placeholder="Kurti, Top, Earrings" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Material / Fabric</label>
+                <input type="text" value={form.material} onChange={(e) => setForm({ ...form, material: e.target.value })} placeholder="Cotton, Silk, Alloy" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Sizes</label>
+                <input type="text" value={form.sizes} onChange={(e) => setForm({ ...form, sizes: e.target.value })} placeholder="S, M, L, XL" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <p className="text-xs text-gray-400 mt-1">Use comma separated values.</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Tags</label>
+                <input type="text" value={form.tags} onChange={(e) => setForm({ ...form, tags: e.target.value })} placeholder="festive, casual, summer" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                <p className="text-xs text-gray-400 mt-1">Use comma separated values.</p>
+              </div>
+              <div className="md:col-span-2">
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">Colors</label>
+                  <button type="button" onClick={addColor} className="text-sm font-medium text-blue-600 hover:text-blue-800">Add Color</button>
+                </div>
+                {form.colors.length === 0 ? (
+                  <p className="text-sm text-gray-400 border border-dashed border-gray-300 rounded-lg p-3">No colors added yet.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {form.colors.map((color, index) => (
+                      <div key={index} className="grid grid-cols-1 md:grid-cols-[1fr_160px_auto] gap-3 items-center">
+                        <input type="text" value={color.name} onChange={(e) => updateColor(index, 'name', e.target.value)} placeholder="Color name, e.g. Red" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <input type="text" value={color.hex} onChange={(e) => updateColor(index, 'hex', e.target.value)} placeholder="#B11226" className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+                        <button type="button" onClick={() => removeColor(index)} className="text-sm font-medium text-red-600 hover:text-red-800">Remove</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-1">Care Instructions</label>
+                <textarea value={form.careInstructions} onChange={(e) => setForm({ ...form, careInstructions: e.target.value })} rows="2" placeholder="Hand wash separately, dry in shade..." className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
               </div>
 
               {/* IMAGE UPLOAD SECTION */}
@@ -394,7 +494,10 @@ return (
                         )}
                         <div>
                           <p className="text-sm font-medium text-gray-900">{product.name}</p>
-                          <p className="text-xs text-gray-500 truncate max-w-48">{product.description}</p>
+                          <p className="text-xs text-gray-500 truncate max-w-48">{product.style || product.description}</p>
+                          {product.colors?.length > 0 && (
+                            <p className="text-xs text-gray-400 truncate max-w-48">Colors: {product.colors.map((color) => color.name).join(', ')}</p>
+                          )}
                         </div>
                       </div>
                     </td>

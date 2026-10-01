@@ -49,7 +49,7 @@ export default function ProductInfo({ product, className }) {
       addToast('This piece is currently out of stock', 'warning');
       return false;
     }
-    if (!isJewellery && !selectedSize) {
+    if (!isJewellery && sizes.length > 0 && !selectedSize) {
       addToast('Please select a size', 'warning');
       return false;
     }
@@ -85,7 +85,7 @@ export default function ProductInfo({ product, className }) {
     <div className={cn('flex flex-col', className)}>
       {/* Eyebrow */}
       <p className="font-accent text-xs uppercase tracking-[0.2em] text-gold-dark">
-        {product.material || product.subcategoryName || product.categoryName}
+        {product.style || product.material || product.subcategoryName || product.categoryName}
       </p>
 
       {/* Title */}
@@ -104,6 +104,15 @@ export default function ProductInfo({ product, className }) {
       {/* Description */}
       {product.description && (
         <p className="mt-5 max-w-prose leading-relaxed text-ink-soft">{product.description}</p>
+      )}
+
+      {(product.material || product.tags?.length > 0) && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {product.material && <Badge variant="soft">{product.material}</Badge>}
+          {product.tags?.map((tag) => (
+            <Badge key={tag} variant="soft">{tag}</Badge>
+          ))}
+        </div>
       )}
 
       <div className="rule-gold my-7 w-full" />

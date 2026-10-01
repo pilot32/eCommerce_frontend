@@ -17,13 +17,6 @@ import { slugify } from './format';
  * }
  */
 
-const DEFAULT_CLOTHING_SIZES = ['S', 'M', 'L', 'XL', 'XXL'];
-const DEFAULT_COLORS = [
-  { name: 'Gold', hex: '#C9A96E' },
-  { name: 'Maroon', hex: '#8B1A1A' },
-  { name: 'Teal', hex: '#2C6E6E' },
-];
-
 /** Price the customer actually pays. */
 export function getEffectivePrice(product) {
   if (!product) return 0;
@@ -98,16 +91,18 @@ export function normalizeProduct(raw) {
     images: images.length ? images : [],
     rating: Number(raw.rating) || 4.6,
     reviewCount: Number(raw.reviewCount ?? raw.reviews) || 0,
-    sizes: Array.isArray(raw.sizes) && raw.sizes.length
-      ? raw.sizes
-      : isJewellery
-        ? ['Free Size']
-        : DEFAULT_CLOTHING_SIZES,
-    colors: Array.isArray(raw.colors) && raw.colors.length ? raw.colors : DEFAULT_COLORS,
+    sizes: Array.isArray(raw.sizes) ? raw.sizes.filter(Boolean) : [],
+    colors: Array.isArray(raw.colors)
+      ? raw.colors
+          .filter((color) => color?.name)
+          .map((color) => ({ name: color.name, hex: color.hex || '' }))
+      : [],
     stock: raw.stock ?? 12,
     featured: Boolean(raw.featured),
     isNew: Boolean(raw.isNew),
+    style: raw.style || '',
     material: raw.material || '',
+    careInstructions: raw.careInstructions || '',
     tags: Array.isArray(raw.tags) ? raw.tags : [],
   };
 }
@@ -141,7 +136,7 @@ export function filterProducts(products, filters = {}) {
     if (maxPrice != null && effective > maxPrice) return false;
 
     if (query) {
-      const haystack = `${p.name} ${p.description} ${p.subcategoryName} ${p.categoryName} ${p.tags.join(' ')}`.toLowerCase();
+      const haystack = `${p.name} ${p.description} ${p.style} ${p.material} ${p.subcategoryName} ${p.categoryName} ${p.tags.join(' ')} ${p.colors.map((color) => color.name).join(' ')}`.toLowerCase();
       if (!haystack.includes(query)) return false;
     }
     return true;
