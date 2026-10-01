@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { orderApi } from '../services/orderApi';
 import { useToast } from '../context/ToastContext';
 import { formatCurrency, formatDate } from '../utils/format';
@@ -33,6 +34,7 @@ const getPaginationFromResponse = (data) =>
   data?.pagination || data?.data?.pagination || null;
 
 export default function AdminOrders() {
+  const navigate = useNavigate();
   const { addToast } = useToast();
   const [orders, setOrders] = useState([]);
   const [filters, setFilters] = useState({
@@ -215,7 +217,11 @@ export default function AdminOrders() {
                   );
 
                   return (
-                    <tr key={order._id} className="hover:bg-gray-50 align-top">
+                    <tr
+                      key={order._id}
+                      onClick={() => navigate(`/admin/orders/${order._id}`)}
+                      className="hover:bg-gray-50 align-top cursor-pointer"
+                    >
                       <td className="px-6 py-4">
                         <p className="text-sm font-medium text-gray-900">
                           {order.orderNumber || order._id}
@@ -247,6 +253,7 @@ export default function AdminOrders() {
                         <select
                           value={draftStatus[order._id] || order.orderStatus || 'PLACED'}
                           onChange={handleStatusChange(order._id)}
+                          onClick={(e) => e.stopPropagation()}
                           className="px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                           {ORDER_STATUSES.map((status) => (
@@ -257,7 +264,10 @@ export default function AdminOrders() {
                       <td className="px-6 py-4 text-right">
                         <button
                           type="button"
-                          onClick={() => handleUpdateStatus(order)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleUpdateStatus(order);
+                          }}
                           disabled={updatingId === order._id || draftStatus[order._id] === order.orderStatus}
                           className="text-blue-600 hover:text-blue-800 disabled:text-gray-400 disabled:cursor-not-allowed text-sm font-medium"
                         >
