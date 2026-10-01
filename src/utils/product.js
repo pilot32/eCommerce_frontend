@@ -37,6 +37,16 @@ export function isInStock(product) {
   return product?.stock == null ? true : product.stock > 0;
 }
 
+const getCareInstructions = (raw) => (
+  raw.careInstructions ||
+  raw.careInstruction ||
+  raw.machineCare ||
+  raw.washCare ||
+  raw.washingInstructions ||
+  raw.care ||
+  ''
+);
+
 /**
  * Normalise a raw API product (or partial sample) into the storefront shape,
  * filling sensible defaults so the UI never has to null-check.
@@ -102,7 +112,7 @@ export function normalizeProduct(raw) {
     isNew: Boolean(raw.isNew),
     style: raw.style || '',
     material: raw.material || '',
-    careInstructions: raw.careInstructions || '',
+    careInstructions: getCareInstructions(raw),
     tags: Array.isArray(raw.tags) ? raw.tags : [],
   };
 }
