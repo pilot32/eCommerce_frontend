@@ -1,3 +1,6 @@
+import FieldHelp from '../components/admin/FieldHelp';
+import ContentImageInput from '../components/admin/ContentImageInput';
+import { uploadImages } from '../services/productApi';
 import { useState, useEffect } from 'react';
 import { heroSlidesApi } from '../services/homeContentApi';
 import { useToast } from '../context/ToastContext';
@@ -22,6 +25,7 @@ export default function HeroSlides() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [imageFile, setImageFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -49,6 +53,7 @@ export default function HeroSlides() {
 
   const resetForm = () => {
     setForm(EMPTY_FORM);
+    setImageFile(null);
     setEditingId(null);
     setShowForm(false);
     setError('');
@@ -69,6 +74,7 @@ export default function HeroSlides() {
       isActive: slide.isActive ?? true,
       order: slide.order ?? 0,
     });
+    setImageFile(null);
     setEditingId(slide._id);
     setShowForm(true);
     setError('');
@@ -78,15 +84,24 @@ export default function HeroSlides() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (!form.image && !imageFile) { setError('Choose an image before saving.'); return; }
     setSubmitting(true);
 
-    // Strip empty secondaryCta so the API doesn't reject it
+    if (Boolean(form.secondaryCta.label.trim()) !== Boolean(form.secondaryCta.to.trim())) { setError('Enter both text and destination for the second button, or leave both blank.'); setSubmitting(false); return; }
     const payload = { ...form };
-    if (!payload.secondaryCta.label && !payload.secondaryCta.to) {
+    if (!editingId && !payload.secondaryCta.label && !payload.secondaryCta.to) {
       delete payload.secondaryCta;
     }
 
     try {
+      if (imageFile) {
+        const response = await uploadImages(imageFile);
+        const url = response.data?.result?.secure_url;
+        if (!url) throw new Error('Image upload failed. Please try again.');
+        payload.image = url;
+        setField('image', url);
+        setImageFile(null);
+      }
       if (editingId) {
         await heroSlidesApi.update(editingId, payload);
         addToast('Hero slide updated', 'success');
@@ -97,7 +112,7 @@ export default function HeroSlides() {
       resetForm();
       fetchSlides();
     } catch (err) {
-      const msg = err.response?.data?.message || 'Operation failed';
+      const msg = err.response?.data?.message || err.message || 'Operation failed';
       setError(msg);
       addToast(msg, 'error');
     } finally {
@@ -143,6 +158,7 @@ export default function HeroSlides() {
           </p>
         </div>
         <button
+          disabled={submitting}
           onClick={() => { resetForm(); setShowForm(true); }}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
         >
@@ -152,7 +168,7 @@ export default function HeroSlides() {
 
       {/* ── error banner ── */}
       {error && (
-        <div className="bg-red-50 text-red-600 p-3 rounded mb-4 text-sm">{error}</div>
+        <div role="alert" className="bg-red-50 text-red-600 p-3 rounded mb-4 text-sm">{error}</div>
       )}
 
       {/* ── form ── */}
@@ -162,13 +178,16 @@ export default function HeroSlides() {
             {editingId ? 'Edit Hero Slide' : 'Add New Hero Slide'}
           </h2>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit}>
+            <p className="mb-5 text-sm text-gray-500">Fields marked * are required. Click an i button for help. Images upload when you save.</p>
+            <fieldset disabled={submitting} className="space-y-5">
             {/* Row 1 — title (required) + eyebrow */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className={labelCls}>Title *</label>
+                <label className={labelCls}>Headline *<FieldHelp label="Headline">The main heading customers see, for example: Up to 40% Off.</FieldHelp></label>
                 <input
                   type="text"
+                  aria-label="Headline"
                   value={form.title}
                   onChange={e => setField('title', e.target.value)}
                   required
@@ -177,9 +196,10 @@ export default function HeroSlides() {
                 />
               </div>
               <div>
-                <label className={labelCls}>Eyebrow</label>
+                <label className={labelCls}>Small heading (eyebrow)<FieldHelp label="Small heading (eyebrow)">A short line above the main headline, such as Festive Sale or New Collection.</FieldHelp></label>
                 <input
                   type="text"
+                  aria-label="Small heading"
                   value={form.eyebrow}
                   onChange={e => setField('eyebrow', e.target.value)}
                   className={inputCls}
@@ -190,10 +210,11 @@ export default function HeroSlides() {
 
             {/* Row 2 — subtitle */}
             <div>
-              <label className={labelCls}>Subtitle</label>
+              <label className={labelCls}>Supporting text<FieldHelp label="Supporting text">Extra details below the headline. A coupon mentioned here must also be configured separately to work at checkout.</FieldHelp></label>
               <input
                 type="text"
-                value={form.subtitle}
+                aria-label="Supporting text"
+                  value={form.subtitle}
                 onChange={e => setField('subtitle', e.target.value)}
                 className={inputCls}
                 placeholder="e.g. Handwoven sarees for every occasion"
@@ -203,19 +224,12 @@ export default function HeroSlides() {
             {/* Row 3 — image URL + align */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-2">
-                <label className={labelCls}>Image URL *</label>
-                <input
-                  type="url"
-                  value={form.image}
-                  onChange={e => setField('image', e.target.value)}
-                  required
-                  className={inputCls}
-                  placeholder="https://..."
-                />
+                <ContentImageInput key={editingId || "new"} image={form.image} file={imageFile} onChange={setImageFile} disabled={submitting} hero={true} />
               </div>
               <div>
-                <label className={labelCls}>Text Alignment</label>
+                <label className={labelCls}>Text position<FieldHelp label="Text position">Places the headline and buttons on the left, centre, or right of the hero image.</FieldHelp></label>
                 <select
+                  aria-label="Text position"
                   value={form.align}
                   onChange={e => setField('align', e.target.value)}
                   className={inputCls}
@@ -229,7 +243,7 @@ export default function HeroSlides() {
 
             {/* Row 4 — CTA (required) */}
             <div>
-              <p className={labelCls}>Primary CTA *</p>
+              <p className={labelCls}>Main button (CTA) *<FieldHelp label="Main button (CTA)">CTA means Call to Action: a button inviting customers to do something. Enter its text (Shop Now) and destination (/shop).</FieldHelp></p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input
                   type="text"
@@ -237,7 +251,7 @@ export default function HeroSlides() {
                   onChange={e => setCtaField('label', e.target.value)}
                   required
                   className={inputCls}
-                  placeholder="Button label (e.g. Shop Now)"
+                  aria-label="Button text" placeholder="Button text (e.g. Shop Now)"
                 />
                 <input
                   type="text"
@@ -245,28 +259,28 @@ export default function HeroSlides() {
                   onChange={e => setCtaField('to', e.target.value)}
                   required
                   className={inputCls}
-                  placeholder="Route (e.g. /shop)"
+                  aria-label="Button destination" placeholder="Destination page (e.g. /shop)"
                 />
               </div>
             </div>
 
             {/* Row 5 — Secondary CTA (optional) */}
             <div>
-              <p className={labelCls}>Secondary CTA <span className="text-gray-400 font-normal">(optional)</span></p>
+              <p className={labelCls}>Second button (optional)<FieldHelp label="Second button">An extra action beside the main button. Leave both fields blank to hide it.</FieldHelp></p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input
                   type="text"
                   value={form.secondaryCta.label}
                   onChange={e => setSecCtaField('label', e.target.value)}
                   className={inputCls}
-                  placeholder="Button label (e.g. New Arrivals)"
+                  aria-label="Button text" placeholder="Button text (e.g. New Arrivals)"
                 />
                 <input
                   type="text"
                   value={form.secondaryCta.to}
                   onChange={e => setSecCtaField('to', e.target.value)}
                   className={inputCls}
-                  placeholder="Route (e.g. /shop?filter=new)"
+                  aria-label="Button destination" placeholder="Destination page (e.g. /shop?filter=new)"
                 />
               </div>
             </div>
@@ -274,10 +288,11 @@ export default function HeroSlides() {
             {/* Row 6 — order + isActive */}
             <div className="flex flex-wrap items-center gap-6">
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-gray-700">Display Order</label>
+                <label className="text-sm font-medium text-gray-700">Display order<FieldHelp label="Display order">Smaller numbers appear first: 0, then 1, then 2.</FieldHelp></label>
                 <input
                   type="number"
                   min="0"
+                  aria-label="Display order"
                   value={form.order}
                   onChange={e => setField('order', Number(e.target.value))}
                   className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
@@ -290,23 +305,11 @@ export default function HeroSlides() {
                   onChange={e => setField('isActive', e.target.checked)}
                   className="w-4 h-4 text-blue-600 rounded"
                 />
-                <span className="text-sm font-medium text-gray-700">Active</span>
+                <span className="text-sm font-medium text-gray-700">Visible on homepage</span>
               </label>
             </div>
 
-            {/* Image preview */}
-            {form.image && (
-              <div>
-                <p className="text-xs text-gray-400 mb-1">Preview</p>
-                <img
-                  src={form.image}
-                  alt="preview"
-                  className="h-32 rounded-lg object-cover border border-gray-200"
-                  onError={e => (e.target.style.display = 'none')}
-                />
-              </div>
-            )}
-
+            <p className="text-xs text-gray-500">Visible on homepage: uncheck to hide this item without deleting it.</p>
             {/* Actions */}
             <div className="flex gap-3 pt-1">
               <button
@@ -314,7 +317,7 @@ export default function HeroSlides() {
                 disabled={submitting}
                 className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors text-sm font-medium"
               >
-                {submitting ? 'Saving...' : editingId ? 'Update Slide' : 'Create Slide'}
+                {submitting ? 'Uploading / saving...' : editingId ? 'Update Slide' : 'Create Slide'}
               </button>
               <button
                 type="button"
@@ -325,6 +328,7 @@ export default function HeroSlides() {
                 Cancel
               </button>
             </div>
+            </fieldset>
           </form>
         </div>
       )}
@@ -333,14 +337,14 @@ export default function HeroSlides() {
       {loading ? (
         <p className="text-gray-500 text-sm">Loading slides...</p>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded-lg shadow overflow-x-auto">
           <table className="min-w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Order</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Image</th>
-                <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Title / Eyebrow</th>
-                <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">CTA</th>
+                <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Headline / Small heading</th>
+                <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Button</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Align</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
                 <th className="text-right px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Actions</th>
@@ -400,6 +404,7 @@ export default function HeroSlides() {
                     {/* actions */}
                     <td className="px-5 py-4 text-right space-x-3">
                       <button
+                        disabled={submitting}
                         onClick={() => handleEdit(slide)}
                         className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                       >

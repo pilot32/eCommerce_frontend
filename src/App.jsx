@@ -34,6 +34,7 @@ const Subcategories = lazy(() => import('./pages/Subcategories'));
 const Products = lazy(() => import('./pages/Products'));
 const AdminOrders = lazy(() => import('./pages/AdminOrders'));
 const AdminOrderDetail = lazy(() => import('./pages/AdminOrderDetail'));
+const CategoryBanners = lazy(() => import('./pages/CategoryBanners'));
 const HeroSlides = lazy(() => import('./pages/HeroSlides'));
 const PromoBanners = lazy(() => import('./pages/PromoBanners'));
 
@@ -81,6 +82,7 @@ function App() {
                     <Route path="products" element={<Products />} />
                     <Route path="orders" element={<AdminOrders />} />
                     <Route path="orders/:id" element={<AdminOrderDetail />} />
+                    <Route path="category-banners" element={<CategoryBanners />} />
                     <Route path="hero-slides" element={<HeroSlides />} />
                     <Route path="promo-banners" element={<PromoBanners />} />
                   </Route>

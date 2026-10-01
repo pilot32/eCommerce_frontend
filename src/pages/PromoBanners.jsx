@@ -1,3 +1,6 @@
+import FieldHelp from '../components/admin/FieldHelp';
+import ContentImageInput from '../components/admin/ContentImageInput';
+import { uploadImages } from '../services/productApi';
 import { useState, useEffect } from 'react';
 import { promoBannersApi } from '../services/homeContentApi';
 import { useToast } from '../context/ToastContext';
@@ -23,6 +26,7 @@ export default function PromoBanners() {
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(EMPTY_FORM);
+  const [imageFile, setImageFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -48,6 +52,7 @@ export default function PromoBanners() {
 
   const resetForm = () => {
     setForm(EMPTY_FORM);
+    setImageFile(null);
     setEditingId(null);
     setShowForm(false);
     setError('');
@@ -64,6 +69,7 @@ export default function PromoBanners() {
       isActive: banner.isActive ?? true,
       order: banner.order ?? 0,
     });
+    setImageFile(null);
     setEditingId(banner._id);
     setShowForm(true);
     setError('');
@@ -73,19 +79,29 @@ export default function PromoBanners() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+    if (!form.image && !imageFile) { setError('Choose an image before saving.'); return; }
     setSubmitting(true);
+    const payload = { ...form };
     try {
+      if (imageFile) {
+        const response = await uploadImages(imageFile);
+        const url = response.data?.result?.secure_url;
+        if (!url) throw new Error('Image upload failed. Please try again.');
+        payload.image = url;
+        setField('image', url);
+        setImageFile(null);
+      }
       if (editingId) {
-        await promoBannersApi.update(editingId, form);
+        await promoBannersApi.update(editingId, payload);
         addToast('Promo banner updated', 'success');
       } else {
-        await promoBannersApi.create(form);
+        await promoBannersApi.create(payload);
         addToast('Promo banner created', 'success');
       }
       resetForm();
       fetchBanners();
     } catch (err) {
-      const msg = err.response?.data?.message || 'Operation failed';
+      const msg = err.response?.data?.message || err.message || 'Operation failed';
       setError(msg);
       addToast(msg, 'error');
     } finally {
@@ -138,6 +154,7 @@ export default function PromoBanners() {
           </p>
         </div>
         <button
+          disabled={submitting}
           onClick={() => { resetForm(); setShowForm(true); }}
           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
         >
@@ -147,7 +164,7 @@ export default function PromoBanners() {
 
       {/* ── error banner ── */}
       {error && (
-        <div className="bg-red-50 text-red-600 p-3 rounded mb-4 text-sm">{error}</div>
+        <div role="alert" className="bg-red-50 text-red-600 p-3 rounded mb-4 text-sm">{error}</div>
       )}
 
       {/* ── form ── */}
@@ -157,13 +174,16 @@ export default function PromoBanners() {
             {editingId ? 'Edit Promo Banner' : 'Add New Promo Banner'}
           </h2>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit}>
+            <p className="mb-5 text-sm text-gray-500">Fields marked * are required. Click an i button for help. Images upload when you save.</p>
+            <fieldset disabled={submitting} className="space-y-5">
             {/* Row 1 — title (required) + eyebrow */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className={labelCls}>Title *</label>
+                <label className={labelCls}>Headline *<FieldHelp label="Headline">The main heading customers see, for example: Up to 40% Off.</FieldHelp></label>
                 <input
                   type="text"
+                  aria-label="Headline"
                   value={form.title}
                   onChange={e => setField('title', e.target.value)}
                   required
@@ -172,9 +192,10 @@ export default function PromoBanners() {
                 />
               </div>
               <div>
-                <label className={labelCls}>Eyebrow</label>
+                <label className={labelCls}>Small heading (eyebrow)<FieldHelp label="Small heading (eyebrow)">A short line above the main headline, such as Festive Sale or New Collection.</FieldHelp></label>
                 <input
                   type="text"
+                  aria-label="Small heading"
                   value={form.eyebrow}
                   onChange={e => setField('eyebrow', e.target.value)}
                   className={inputCls}
@@ -185,10 +206,11 @@ export default function PromoBanners() {
 
             {/* Row 2 — subtitle */}
             <div>
-              <label className={labelCls}>Subtitle</label>
+              <label className={labelCls}>Supporting text<FieldHelp label="Supporting text">Extra details below the headline. A coupon mentioned here must also be configured separately to work at checkout.</FieldHelp></label>
               <input
                 type="text"
-                value={form.subtitle}
+                aria-label="Supporting text"
+                  value={form.subtitle}
                 onChange={e => setField('subtitle', e.target.value)}
                 className={inputCls}
                 placeholder="e.g. Use code FESTIVE20 at checkout"
@@ -198,19 +220,12 @@ export default function PromoBanners() {
             {/* Row 3 — image + accent */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="md:col-span-2">
-                <label className={labelCls}>Image URL *</label>
-                <input
-                  type="url"
-                  value={form.image}
-                  onChange={e => setField('image', e.target.value)}
-                  required
-                  className={inputCls}
-                  placeholder="https://..."
-                />
+                <ContentImageInput key={editingId || "new"} image={form.image} file={imageFile} onChange={setImageFile} disabled={submitting} hero={false} />
               </div>
               <div>
-                <label className={labelCls}>Accent Colour</label>
+                <label className={labelCls}>Highlight colour<FieldHelp label="Highlight colour">The colour of the card border and small heading. It does not recolour your photo.</FieldHelp></label>
                 <select
+                  aria-label="Highlight colour"
                   value={form.accent}
                   onChange={e => setField('accent', e.target.value)}
                   className={inputCls}
@@ -226,7 +241,7 @@ export default function PromoBanners() {
 
             {/* Row 4 — CTA (required) */}
             <div>
-              <p className={labelCls}>CTA Button *</p>
+              <p className={labelCls}>Button (CTA) *<FieldHelp label="Button (CTA)">CTA means Call to Action: a button inviting customers to do something. Enter its text (Shop Now) and destination (/shop).</FieldHelp></p>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <input
                   type="text"
@@ -234,7 +249,7 @@ export default function PromoBanners() {
                   onChange={e => setCtaField('label', e.target.value)}
                   required
                   className={inputCls}
-                  placeholder="Button label (e.g. Shop Now)"
+                  aria-label="Button text" placeholder="Button text (e.g. Shop Now)"
                 />
                 <input
                   type="text"
@@ -242,7 +257,7 @@ export default function PromoBanners() {
                   onChange={e => setCtaField('to', e.target.value)}
                   required
                   className={inputCls}
-                  placeholder="Route (e.g. /shop?filter=sale)"
+                  aria-label="Button destination" placeholder="Destination page (e.g. /shop?filter=sale)"
                 />
               </div>
             </div>
@@ -250,10 +265,11 @@ export default function PromoBanners() {
             {/* Row 5 — order + isActive */}
             <div className="flex flex-wrap items-center gap-6">
               <div className="flex items-center gap-2">
-                <label className="text-sm font-medium text-gray-700">Display Order</label>
+                <label className="text-sm font-medium text-gray-700">Display order<FieldHelp label="Display order">Smaller numbers appear first: 0, then 1, then 2.</FieldHelp></label>
                 <input
                   type="number"
                   min="0"
+                  aria-label="Display order"
                   value={form.order}
                   onChange={e => setField('order', Number(e.target.value))}
                   className="w-20 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
@@ -266,31 +282,19 @@ export default function PromoBanners() {
                   onChange={e => setField('isActive', e.target.checked)}
                   className="w-4 h-4 text-blue-600 rounded"
                 />
-                <span className="text-sm font-medium text-gray-700">Active</span>
+                <span className="text-sm font-medium text-gray-700">Visible on homepage</span>
               </label>
             </div>
 
-            {/* image preview */}
-            {form.image && (
-              <div>
-                <p className="text-xs text-gray-400 mb-1">Preview</p>
-                <img
-                  src={form.image}
-                  alt="preview"
-                  className="h-28 rounded-lg object-cover border border-gray-200"
-                  onError={e => (e.target.style.display = 'none')}
-                />
-              </div>
-            )}
-
-            {/* actions */}
+            <p className="text-xs text-gray-500">Visible on homepage: uncheck to hide this item without deleting it.</p>
+            {/* Actions */}
             <div className="flex gap-3 pt-1">
               <button
                 type="submit"
                 disabled={submitting}
                 className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:bg-blue-400 disabled:cursor-not-allowed transition-colors text-sm font-medium"
               >
-                {submitting ? 'Saving...' : editingId ? 'Update Banner' : 'Create Banner'}
+                {submitting ? 'Uploading / saving...' : editingId ? 'Update Banner' : 'Create Banner'}
               </button>
               <button
                 type="button"
@@ -301,6 +305,7 @@ export default function PromoBanners() {
                 Cancel
               </button>
             </div>
+            </fieldset>
           </form>
         </div>
       )}
@@ -309,14 +314,14 @@ export default function PromoBanners() {
       {loading ? (
         <p className="text-gray-500 text-sm">Loading banners...</p>
       ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="bg-white rounded-lg shadow overflow-x-auto">
           <table className="min-w-full">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Order</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Image</th>
-                <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Title / Eyebrow</th>
-                <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">CTA</th>
+                <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Headline / Small heading</th>
+                <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Button</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Accent</th>
                 <th className="text-left px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Status</th>
                 <th className="text-right px-5 py-3 text-xs font-medium text-gray-500 uppercase tracking-wide">Actions</th>
@@ -383,6 +388,7 @@ export default function PromoBanners() {
                     {/* actions */}
                     <td className="px-5 py-4 text-right space-x-3">
                       <button
+                        disabled={submitting}
                         onClick={() => handleEdit(banner)}
                         className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                       >

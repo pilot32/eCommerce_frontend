@@ -1,4 +1,5 @@
-import { PROMO_BANNERS } from '../../constants/sampleData';
+import { promoBannersApi } from '../../services/homeContentApi';
+import { useHomeContent } from '../../hooks/useHomeContent';
 import Container from '../ui/Container';
 import SmartImage from '../ui/SmartImage';
 import Button from '../ui/Button';
@@ -19,14 +20,16 @@ const ACCENTS = {
  * Each card pairs an image with copy and a CTA, tinted by its accent colour.
  */
 export default function PromoBanners() {
+  const banners = useHomeContent(promoBannersApi);
+  if (!banners.length) return null;
   return (
     <section className="py-14 sm:py-20">
       <Container>
         <ul className="grid grid-cols-1 gap-6 md:grid-cols-3">
-          {PROMO_BANNERS.map((banner) => {
+          {banners.map((banner) => {
             const accent = ACCENTS[banner.accent] || ACCENTS.gold;
             return (
-              <li key={banner.id}>
+              <li key={banner._id}>
                 <article
                   className={cn(
                     'group flex h-full flex-col overflow-hidden rounded-card border border-sand/60 border-l-4 bg-cream shadow-soft transition-all duration-300 hover:-translate-y-1 hover:shadow-lift',

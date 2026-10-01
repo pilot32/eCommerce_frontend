@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { ArrowRight } from 'lucide-react';
-import { CATEGORY_TILES } from '../../constants/sampleData';
+import { categoryTilesApi } from '../../services/homeContentApi';
+import { useHomeContent } from '../../hooks/useHomeContent';
 import Section from '../ui/Section';
 import SmartImage from '../ui/SmartImage';
 
@@ -9,11 +10,13 @@ import SmartImage from '../ui/SmartImage';
  * shop with a subtle hover zoom on the photo.
  */
 export default function CategoryShowcase() {
+  const tiles = useHomeContent(categoryTilesApi);
+  if (!tiles.length) return null;
   return (
     <Section eyebrow="Explore" title="Shop by Category" className="bg-ivory">
       <ul className="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
-        {CATEGORY_TILES.map((tile) => (
-          <li key={tile.slug}>
+        {tiles.map((tile) => (
+          <li key={tile._id}>
             <Link
               to={tile.to}
               className="group relative block overflow-hidden rounded-card shadow-soft transition-shadow duration-300 hover:shadow-lift"

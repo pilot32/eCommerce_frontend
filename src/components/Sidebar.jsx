@@ -13,6 +13,7 @@ const navItems = [
 ];
 
 const homeContentItems = [
+  { path: '/admin/category-banners', label: 'Category Banners', icon: categoriesIcon },
   { path: '/admin/hero-slides', label: 'Hero Slides', icon: productsIcon },
   { path: '/admin/promo-banners', label: 'Promo Banners', icon: productsIcon },
 ];

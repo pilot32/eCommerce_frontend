@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { HERO_SLIDES } from '../../constants/sampleData';
+import { heroSlidesApi } from '../../services/homeContentApi';
+import { useHomeContent } from '../../hooks/useHomeContent';
 import SmartImage from '../ui/SmartImage';
 import Container from '../ui/Container';
 import Button from '../ui/Button';
@@ -10,27 +11,30 @@ import { cn } from '../../utils/cn';
 const AUTOPLAY_MS = 5000;
 
 /**
- * Full-bleed hero carousel over HERO_SLIDES.
+ * Full-bleed hero carousel using saved homepage content.
  * Autoplays every 5s (paused on hover), with arrow + dot controls and a
  * crossfade between slides. Each slide layers a SmartImage background, a warm
  * ink gradient for text contrast, and the slide copy + CTAs.
  */
 export default function HeroCarousel() {
+  const slides = useHomeContent(heroSlidesApi);
   const [active, setActive] = useState(0);
   const [paused, setPaused] = useState(false);
-  const count = HERO_SLIDES.length;
+  const count = slides.length;
 
-  const goTo = useCallback((i) => setActive((i + count) % count), [count]);
+  const goTo = useCallback((i) => setActive((i + count) % (count || 1)), [count]);
   const next = useCallback(() => goTo(active + 1), [active, goTo]);
   const prev = useCallback(() => goTo(active - 1), [active, goTo]);
 
   // Autoplay via a functional update so the interval never needs the latest
   // `active` (no ref-during-render, no interval churn).
   useEffect(() => {
-    if (paused) return undefined;
+    if (paused || count < 2) return undefined;
     const id = setInterval(() => setActive((a) => (a + 1) % count), AUTOPLAY_MS);
     return () => clearInterval(id);
   }, [paused, count]);
+
+  if (!count) return null;
 
   return (
     <section
@@ -40,26 +44,29 @@ export default function HeroCarousel() {
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >
-      {HERO_SLIDES.map((slide, i) => {
-        const isActive = i === active;
+      {slides.map((slide, i) => {
+        const isActive = i === active % count;
         return (
           <div
-            key={slide.id}
+            key={slide._id}
             aria-hidden={!isActive}
+            inert={!isActive}
             className={cn(
               'absolute inset-0 transition-all duration-700 ease-out',
               isActive ? 'translate-x-0 opacity-100' : 'pointer-events-none translate-x-4 opacity-0'
             )}
           >
-            <SmartImage
-              src={slide.image}
-              alt={slide.title.replace(/\n/g, ' ')}
-              className="absolute inset-0 h-full w-full"
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-ink/75 via-ink/35 to-transparent" />
+            <div className="pointer-events-none absolute inset-0">
+              <SmartImage
+                src={slide.image}
+                alt={slide.title.replace(/\n/g, ' ')}
+                className="h-full w-full"
+              />
+            </div>
+            <div className={cn("absolute inset-0 from-ink/75 via-ink/35 to-transparent", slide.align === "right" ? "bg-gradient-to-l" : slide.align === "center" ? "bg-ink/50" : "bg-gradient-to-r")} />
 
             <Container className="relative flex min-h-[72vh] items-center lg:min-h-[82vh]">
-              <div className="max-w-xl py-16">
+              <div className={cn("w-full max-w-xl py-16", slide.align === "center" && "mx-auto text-center", slide.align === "right" && "ml-auto text-right")}>
                 {slide.eyebrow && (
                   <p className="mb-3 font-accent text-xs uppercase tracking-[0.22em] text-gold-light">
                     {slide.eyebrow}
@@ -69,15 +76,15 @@ export default function HeroCarousel() {
                   {slide.title}
                 </h1>
                 {slide.subtitle && (
-                  <p className="mt-5 max-w-md text-base text-cream/90 sm:text-lg">{slide.subtitle}</p>
+                  <p className="mt-5 text-base text-cream/90 sm:text-lg">{slide.subtitle}</p>
                 )}
-                <div className="mt-8 flex flex-wrap gap-3">
+                <div className={cn("mt-8 flex flex-wrap gap-3", slide.align === "center" && "justify-center", slide.align === "right" && "justify-end")}>
                   {slide.cta && (
                     <Button to={slide.cta.to} size="lg">
                       {slide.cta.label}
                     </Button>
                   )}
-                  {slide.secondaryCta && (
+                  {slide.secondaryCta?.label && slide.secondaryCta?.to && (
                     <Button to={slide.secondaryCta.to} size="lg" variant="light">
                       {slide.secondaryCta.label}
                     </Button>
@@ -113,16 +120,16 @@ export default function HeroCarousel() {
 
       {/* Dot indicators */}
       <div className="absolute inset-x-0 bottom-6 z-10 flex items-center justify-center gap-2.5">
-        {HERO_SLIDES.map((slide, i) => (
+        {slides.map((slide, i) => (
           <button
-            key={slide.id}
+            key={slide._id}
             type="button"
             aria-label={`Go to slide ${i + 1}`}
-            aria-current={i === active}
+            aria-current={i === active % count}
             onClick={() => goTo(i)}
             className={cn(
               'h-2.5 rounded-full transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 focus-visible:ring-offset-ink',
-              i === active ? 'w-8 bg-gold' : 'w-2.5 bg-cream/60 hover:bg-cream'
+              i === active % count ? 'w-8 bg-gold' : 'w-2.5 bg-cream/60 hover:bg-cream'
             )}
           />
         ))}

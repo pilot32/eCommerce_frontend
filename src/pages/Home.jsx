@@ -9,8 +9,8 @@ import WhyShopWithUs from '../components/home/WhyShopWithUs';
 import Testimonials from '../components/home/Testimonials';
 
 /**
- * Storefront home — the showcase page. Top to bottom: hero carousel, category
- * showcase, new arrivals rail, promo banners, featured collection rail, the
+ * Storefront home — the showcase page. Top to bottom: hero carousel, promo
+ * banners, category showcase, new arrivals rail, featured collection rail, the
  * brand promise strip and customer testimonials.
  */
 export default function Home() {
@@ -26,6 +26,8 @@ export default function Home() {
     <>
       <HeroCarousel />
 
+      <PromoBanners />
+
       <CategoryShowcase />
 
       <Section eyebrow="Just In" title="New Arrivals" viewAllTo="/shop?filter=new" className="bg-ivory">
@@ -35,8 +37,6 @@ export default function Home() {
           <ProductRail products={newArrivals} />
         )}
       </Section>
-
-      <PromoBanners />
 
       <Section eyebrow="Curated" title="Featured Collection" viewAllTo="/shop" className="bg-cream">
         {loading ? (

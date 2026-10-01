@@ -38,3 +38,12 @@ export const promoBannersApi = {
   /** DELETE /promo-banners/:id */
   delete: (id) => api.delete(`/home/promo-banners/${id}`),
 };
+
+// Homepage category image tiles (separate from product category definitions).
+export const categoryTilesApi = {
+  getAll: (activeOnly = false) => api.get('/home/category-tiles', { params: { activeOnly } }),
+  create: (data) => api.post('/home/category-tiles', data),
+  update: (id, data) => api.patch(`/home/category-tiles/${id}`, data),
+  updateStatus: (id, data) => api.patch(`/home/category-tiles/${id}/status`, data),
+  delete: (id) => api.delete(`/home/category-tiles/${id}`),
+};
