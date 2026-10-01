@@ -484,7 +484,11 @@ return (
                 <tr><td colSpan="7" className="text-center py-8 text-gray-500">No products found</td></tr>
               ) : (
                 products.map((product) => (
-                  <tr key={product._id} className="hover:bg-gray-50">
+                  <tr
+                    key={product._id}
+                    onClick={() => handleEdit(product)}
+                    className="hover:bg-gray-50 cursor-pointer"
+                  >
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-3">
                         {product.images?.[0] ? (
@@ -516,8 +520,24 @@ return (
                       {product.featured ? <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded text-xs font-medium">Featured</span> : <span className="text-gray-400 text-xs">No</span>}
                     </td>
                     <td className="px-6 py-4 text-right space-x-2">
-                      <button onClick={() => handleEdit(product)} className="text-blue-600 hover:text-blue-800 text-sm font-medium">Edit</button>
-                      <button onClick={() => handleDelete(product._id)} className="text-red-600 hover:text-red-800 text-sm font-medium">Delete</button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(product);
+                        }}
+                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDelete(product._id);
+                        }}
+                        className="text-red-600 hover:text-red-800 text-sm font-medium"
+                      >
+                        Delete
+                      </button>
                     </td>
                   </tr>
                 ))
