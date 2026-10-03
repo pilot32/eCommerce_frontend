@@ -3,8 +3,6 @@ import Card from '../ui/Card';
 import Button from '../ui/Button';
 import CouponInput from './CouponInput';
 import { formatCurrency } from '../../utils/format';
-import { getDeliveryFee } from '../../utils/coupon';
-import { FREE_DELIVERY_THRESHOLD } from '../../constants/sampleData';
 
 /**
  * Sticky order summary card — totals breakdown, coupon entry,
@@ -14,7 +12,8 @@ import { FREE_DELIVERY_THRESHOLD } from '../../constants/sampleData';
 export default function OrderSummary({
   subtotal,
   coupon,
-  summary,
+  shippingQuote,
+  shippingLoading = false,
   onApplyCoupon,
   onCheckout,
   checkoutLabel = 'Proceed to Checkout',
@@ -22,12 +21,8 @@ export default function OrderSummary({
 }) {
   const discount = coupon?.discount || 0;
   const subtotalAfterDiscount = subtotal - discount;
-  const hasBackendSummary = summary && Number(summary.subtotal) === Number(subtotal);
-  const deliveryFee = hasBackendSummary ? summary.shipping : getDeliveryFee(subtotalAfterDiscount);
-  const grandTotal = hasBackendSummary ? summary.grandTotal : subtotalAfterDiscount + deliveryFee;
-
-  // How much more (after discount) unlocks free delivery.
-  const freeDeliveryGap = FREE_DELIVERY_THRESHOLD - subtotalAfterDiscount;
+  const deliveryFee = shippingQuote?.deliveryCharge;
+  const grandTotal = subtotalAfterDiscount + (deliveryFee || 0);
 
   return (
     <Card className="p-5 sm:p-6">
@@ -51,7 +46,11 @@ export default function OrderSummary({
         <div className="flex items-center justify-between">
           <dt className="text-ink-soft">Delivery Fee</dt>
           <dd className="font-semibold">
-            {deliveryFee === 0 ? (
+            {shippingLoading ? (
+              <span className="text-ink-soft">Calculating...</span>
+            ) : deliveryFee === undefined ? (
+              <span className="text-ink-soft">Enter delivery address</span>
+            ) : deliveryFee === 0 ? (
               <span className="text-teal">FREE</span>
             ) : (
               <span className="text-ink">{formatCurrency(deliveryFee)}</span>
@@ -60,11 +59,9 @@ export default function OrderSummary({
         </div>
       </dl>
 
-      {/* Free-delivery nudge */}
-      {deliveryFee > 0 && freeDeliveryGap > 0 && (
+      {shippingQuote?.isEstimated && (
         <p className="mt-3 rounded-input bg-gold-glow px-3 py-2 text-xs text-ink-soft">
-          Add <span className="font-semibold text-gold-dark">{formatCurrency(freeDeliveryGap)}</span>{' '}
-          more to unlock free delivery.
+          Delivery is estimated from your selected pincode and package details. The final charge is confirmed when the order is placed.
         </p>
       )}
 
