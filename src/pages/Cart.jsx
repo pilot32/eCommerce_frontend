@@ -11,6 +11,7 @@ import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { addressApi } from '../services/addressApi';
 import { orderApi } from '../services/orderApi';
+import { shippingApi } from '../services/shippingApi';
 import { pluralize } from '../utils/format';
 
 /**
@@ -18,13 +19,18 @@ import { pluralize } from '../utils/format';
  * summary. Owns the applied-coupon state and the (mock) checkout flow.
  */
 export default function Cart() {
-  const { cart, clearCart, refreshCart, cartCount, cartTotal, summary, coupon, applyCoupon } = useCart();
+  const { cart, clearCart, refreshCart, cartCount, cartTotal, coupon, applyCoupon } = useCart();
   const { token } = useAuth();
   const { addToast } = useToast();
   const navigate = useNavigate();
   const [defaultAddress, setDefaultAddress] = useState(null);
   const [addressLoading, setAddressLoading] = useState(false);
+  const [shippingQuote, setShippingQuote] = useState(null);
+  const [shippingLoading, setShippingLoading] = useState(false);
+  const [shippingError, setShippingError] = useState('');
   const [placingOrder, setPlacingOrder] = useState(false);
+  const defaultAddressId = defaultAddress?._id;
+  const cartQuoteKey = cart.map((item) => `${item._id}:${item.quantity}:${item.priceAddition || item.price}`).join('|');
 
   useEffect(() => {
     if (!token || cart.length === 0) {
@@ -48,6 +54,37 @@ export default function Cart() {
     loadDefaultAddress();
     return () => { active = false; };
   }, [token, cart.length]);
+
+  useEffect(() => {
+    if (!token || !defaultAddressId || !cartQuoteKey) {
+      setShippingQuote(null);
+      setShippingError('');
+      return;
+    }
+
+    let active = true;
+    const loadShippingQuote = async () => {
+      setShippingLoading(true);
+      setShippingError('');
+      try {
+        const response = await shippingApi.getQuote({
+          shippingAddressId: defaultAddressId,
+          paymentMethod: 'COD',
+        });
+        if (active) setShippingQuote(response.data);
+      } catch (err) {
+        if (active) {
+          setShippingQuote(null);
+          setShippingError(err.response?.data?.message || 'Delivery charges could not be calculated');
+        }
+      } finally {
+        if (active) setShippingLoading(false);
+      }
+    };
+
+    loadShippingQuote();
+    return () => { active = false; };
+  }, [token, defaultAddressId, cartQuoteKey, coupon?.code, coupon?.discount]);
 
   const handleApplyCoupon = async (code) => {
     try {
@@ -182,6 +219,14 @@ export default function Cart() {
                     {defaultAddress.city}, {defaultAddress.state} {defaultAddress.postalCode}
                   </p>
                   <p className="mt-1 text-ink-mute">{defaultAddress.phone}</p>
+                  {shippingLoading && <p className="mt-3 text-xs text-ink-mute">Calculating delivery charges...</p>}
+                  {shippingError && <p className="mt-3 text-xs text-maroon">{shippingError}</p>}
+                  {shippingQuote?.recommendedCourier && (
+                    <p className="mt-3 text-xs text-teal">
+                      {shippingQuote.recommendedCourier.courierName} · estimated delivery in{' '}
+                      {shippingQuote.recommendedCourier.estimatedDeliveryDays.min}–{shippingQuote.recommendedCourier.estimatedDeliveryDays.max} days
+                    </p>
+                  )}
                 </div>
               ) : (
                 <div className="mt-2">
@@ -201,11 +246,12 @@ export default function Cart() {
             <OrderSummary
               subtotal={cartTotal}
               coupon={coupon}
-              summary={summary}
+              shippingQuote={shippingQuote}
+              shippingLoading={shippingLoading}
               onApplyCoupon={handleApplyCoupon}
               onCheckout={handleCheckout}
               checkoutLabel={placingOrder ? 'Placing Order...' : 'Place COD Order'}
-              checkoutDisabled={placingOrder || addressLoading}
+              checkoutDisabled={placingOrder || addressLoading || shippingLoading || Boolean(token && defaultAddress && !shippingQuote)}
             />
           </div>
         </aside>

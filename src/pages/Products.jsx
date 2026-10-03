@@ -9,6 +9,7 @@ const emptyForm = {
   name: '', description: '', categoryId: '', subcategoryId: '',
   price: '', discountedPrice: '', stock: '', images: [],
   style: '', material: '', colors: [], sizes: '', tags: '', careInstructions: '',
+  shippingDimensions: { weightKg: '', lengthCm: '', widthCm: '', heightCm: '' },
   isActive: true, featured: false,
 };
 
@@ -200,6 +201,17 @@ const uploadFiles = async (files) => {
     e.preventDefault();
     setError('');
     setSubmitting(true);
+    const shippingDimensionValues = Object.values(form.shippingDimensions);
+    const hasShippingDimensions = shippingDimensionValues.some((value) => value !== '');
+
+    if (hasShippingDimensions && shippingDimensionValues.some((value) => value === '')) {
+      const message = 'Enter weight, length, width, and height together for shipping calculations.';
+      setError(message);
+      addToast(message, 'error');
+      setSubmitting(false);
+      return;
+    }
+
     const payload = {
       ...form,
       price: Number(form.price),
@@ -219,6 +231,14 @@ const uploadFiles = async (files) => {
       sizes: fromCsv(form.sizes),
       tags: fromCsv(form.tags),
       careInstructions: form.careInstructions.trim(),
+      shippingDimensions: hasShippingDimensions
+        ? {
+            weightKg: Number(form.shippingDimensions.weightKg),
+            lengthCm: Number(form.shippingDimensions.lengthCm),
+            widthCm: Number(form.shippingDimensions.widthCm),
+            heightCm: Number(form.shippingDimensions.heightCm),
+          }
+        : undefined,
     };
     try {
       if (editingId) {
@@ -257,6 +277,12 @@ const uploadFiles = async (files) => {
       sizes: toCsv(product.sizes),
       tags: toCsv(product.tags),
       careInstructions: product.careInstructions || '',
+      shippingDimensions: {
+        weightKg: product.shippingDimensions?.weightKg ?? '',
+        lengthCm: product.shippingDimensions?.lengthCm ?? '',
+        widthCm: product.shippingDimensions?.widthCm ?? '',
+        heightCm: product.shippingDimensions?.heightCm ?? '',
+      },
       isActive: product.isActive ?? true, featured: product.featured || false,
     });
     setEditingId(product._id);
@@ -391,6 +417,37 @@ return (
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Care Instructions</label>
                 <textarea value={form.careInstructions} onChange={(e) => setForm({ ...form, careInstructions: e.target.value })} rows="2" placeholder="Hand wash separately, dry in shade..." className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+
+              <div className="md:col-span-2 rounded-lg border border-gray-200 p-4">
+                <div className="mb-3">
+                  <label className="block text-sm font-medium text-gray-700">Shipping Package Details</label>
+                  <p className="mt-1 text-xs text-gray-400">Enter the packed product weight and dimensions. These are used to calculate delivery charges.</p>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
+                  {[
+                    ['weightKg', 'Weight (kg)', '0.25', '0.01'],
+                    ['lengthCm', 'Length (cm)', '20', '0.1'],
+                    ['widthCm', 'Width (cm)', '15', '0.1'],
+                    ['heightCm', 'Height (cm)', '5', '0.1'],
+                  ].map(([field, label, placeholder, step]) => (
+                    <div key={field}>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+                      <input
+                        type="number"
+                        min={step}
+                        step={step}
+                        value={form.shippingDimensions[field]}
+                        onChange={(e) => setForm({
+                          ...form,
+                          shippingDimensions: { ...form.shippingDimensions, [field]: e.target.value },
+                        })}
+                        placeholder={placeholder}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {/* IMAGE UPLOAD SECTION */}
