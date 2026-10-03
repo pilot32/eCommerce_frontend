@@ -32,6 +32,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Categories = lazy(() => import('./pages/Categories'));
 const Subcategories = lazy(() => import('./pages/Subcategories'));
 const Products = lazy(() => import('./pages/Products'));
+const Coupons = lazy(() => import('./pages/Coupons'));
 const AdminOrders = lazy(() => import('./pages/AdminOrders'));
 const AdminOrderDetail = lazy(() => import('./pages/AdminOrderDetail'));
 const CategoryBanners = lazy(() => import('./pages/CategoryBanners'));
@@ -80,6 +81,7 @@ function App() {
                     <Route path="categories" element={<Categories />} />
                     <Route path="subcategories" element={<Subcategories />} />
                     <Route path="products" element={<Products />} />
+                    <Route path="coupons" element={<Coupons />} />
                     <Route path="orders" element={<AdminOrders />} />
                     <Route path="orders/:id" element={<AdminOrderDetail />} />
                     <Route path="category-banners" element={<CategoryBanners />} />
