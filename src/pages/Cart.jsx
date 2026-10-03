@@ -56,7 +56,7 @@ export default function Cart() {
   }, [token, cart.length]);
 
   useEffect(() => {
-    if (!token || !defaultAddressId || cart.length === 0) {
+    if (!token || !defaultAddressId || !cartQuoteKey) {
       setShippingQuote(null);
       setShippingError('');
       return;
