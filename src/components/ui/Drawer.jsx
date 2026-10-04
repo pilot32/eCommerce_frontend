@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import IconButton from './IconButton';
+import useDialogFocus from '../../hooks/useDialogFocus';
 
 const SIDE = {
   left: { pos: 'left-0 top-0 h-full', closed: '-translate-x-full', open: 'translate-x-0', size: 'w-[88%] max-w-sm' },
@@ -18,6 +19,9 @@ const SIDE = {
 export default function Drawer({ open, onClose, side = 'right', title, children, footer, panelClassName }) {
   const [mounted, setMounted] = useState(open);
   const [shown, setShown] = useState(false);
+  const panelRef = useRef(null);
+
+  useDialogFocus(open && mounted, panelRef, onClose);
 
   useEffect(() => {
     if (open) {
@@ -32,12 +36,9 @@ export default function Drawer({ open, onClose, side = 'right', title, children,
 
   useEffect(() => {
     if (!open) return undefined;
-    const onKey = (e) => e.key === 'Escape' && onClose?.();
-    document.addEventListener('keydown', onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
-      document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prev;
     };
   }, [open, onClose]);
@@ -55,6 +56,8 @@ export default function Drawer({ open, onClose, side = 'right', title, children,
         )}
       />
       <div
+        ref={panelRef}
+        tabIndex={-1}
         className={cn(
           'absolute flex flex-col bg-ivory shadow-lift transition-transform duration-300 ease-out',
           s.pos,

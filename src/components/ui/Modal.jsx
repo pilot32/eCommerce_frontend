@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import IconButton from './IconButton';
+import useDialogFocus from '../../hooks/useDialogFocus';
 
 /**
  * Centered modal dialog rendered in a portal.
@@ -11,6 +12,9 @@ import IconButton from './IconButton';
 export default function Modal({ open, onClose, title, children, footer, maxWidth = 'max-w-lg' }) {
   const [mounted, setMounted] = useState(open);
   const [shown, setShown] = useState(false);
+  const panelRef = useRef(null);
+
+  useDialogFocus(open && mounted, panelRef, onClose);
 
   useEffect(() => {
     if (open) {
@@ -25,12 +29,9 @@ export default function Modal({ open, onClose, title, children, footer, maxWidth
 
   useEffect(() => {
     if (!open) return undefined;
-    const onKey = (e) => e.key === 'Escape' && onClose?.();
-    document.addEventListener('keydown', onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
-      document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prev;
     };
   }, [open, onClose]);
@@ -47,6 +48,8 @@ export default function Modal({ open, onClose, title, children, footer, maxWidth
         )}
       />
       <div
+        ref={panelRef}
+        tabIndex={-1}
         className={cn(
           'relative w-full overflow-hidden rounded-card bg-ivory shadow-lift transition-all duration-300',
           maxWidth,

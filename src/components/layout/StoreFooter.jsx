@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, MapPin, Phone } from 'lucide-react';
 import Container from '../ui/Container';
@@ -6,19 +5,8 @@ import Logo from '../ui/Logo';
 import Icon from '../ui/Icon';
 import Button from '../ui/Button';
 import { BRAND, FOOTER_LINKS, SOCIAL_LINKS } from '../../constants/brand';
-import { useToast } from '../../context/ToastContext';
 
 export default function StoreFooter() {
-  const [email, setEmail] = useState('');
-  const { addToast } = useToast();
-
-  const handleSubscribe = (e) => {
-    e.preventDefault();
-    if (!email.trim()) return;
-    addToast('Thanks for subscribing to Wornora!', 'success');
-    setEmail('');
-  };
-
   return (
     <footer className="mt-auto bg-ink text-cream/80">
       {/* Newsletter */}
@@ -27,22 +15,12 @@ export default function StoreFooter() {
           <div>
             <h3 className="font-heading text-2xl text-cream">Join the Wornora family</h3>
             <p className="mt-1 text-sm text-cream/80">
-              Be the first to know about new drops, festive edits & exclusive offers.
+              Newsletter updates are coming soon. Until then, our care team can help with new drops and collection questions.
             </p>
           </div>
-          <form onSubmit={handleSubscribe} className="flex w-full max-w-md gap-2 md:ml-auto">
-            <label htmlFor="newsletter-email" className="sr-only">Email address</label>
-            <input
-              id="newsletter-email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              className="h-11 w-full rounded-btn border border-white/20 bg-white/10 px-4 text-sm text-cream placeholder:text-cream/60 focus:border-gold focus:outline-none"
-            />
-            <Button type="submit" variant="primary">Subscribe</Button>
-          </form>
+          <div className="md:ml-auto">
+            <Button to="/contact" variant="primary">Contact us</Button>
+          </div>
         </Container>
       </div>
 

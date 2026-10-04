@@ -45,47 +45,48 @@ export default function ProductCard({ product, className }) {
   };
 
   return (
-    <Link
-      to={`/product/${product._id}`}
+    <article
       className={cn(
-        'group block overflow-hidden rounded-card border border-sand/60 bg-cream shadow-soft',
-        'transition-all duration-300 hover:-translate-y-1.5 hover:shadow-lift',
+        'group overflow-hidden rounded-lg border border-sand/60 bg-cream',
+        'transition-colors duration-200 hover:border-gold/70',
         className
       )}
     >
       <div className="relative aspect-[4/5] overflow-hidden">
-        <SmartImage
-          src={product.images?.[0]}
-          alt={product.name}
-          className="h-full w-full"
-          imgClassName="transition-transform duration-700 ease-out group-hover:scale-105"
-        />
+        <Link to={`/product/${product._id}`} className="block h-full" aria-label={`View ${product.name}`}>
+          <SmartImage
+            src={product.images?.[0]}
+            alt={product.name}
+            className="h-full w-full"
+            imgClassName="transition-transform duration-700 ease-out group-hover:scale-105"
+          />
 
-        <div className="absolute left-3 top-3 flex flex-col gap-1.5">
-          {discount > 0 && <Badge variant="sale">{discount}% OFF</Badge>}
-          {product.isNew && <Badge variant="new">New</Badge>}
-        </div>
+          <div className="absolute left-3 top-3 flex flex-col gap-1.5">
+            {discount > 0 && <Badge variant="sale">{discount}% OFF</Badge>}
+            {product.isNew && <Badge variant="new">New</Badge>}
+          </div>
+
+          {!inStock && (
+            <div className="absolute inset-0 flex items-center justify-center bg-ivory/60">
+              <Badge variant="outOfStock">Out of Stock</Badge>
+            </div>
+          )}
+        </Link>
 
         <button
           type="button"
           onClick={handleWishlist}
           aria-label={wished ? 'Remove from wishlist' : 'Add to wishlist'}
+          aria-pressed={wished}
           className={cn(
-            'absolute right-3 top-3 flex h-9 w-9 items-center justify-center rounded-full bg-cream/90 shadow-soft backdrop-blur transition-all duration-200 hover:scale-110',
+            'absolute right-2 top-2 z-10 flex h-11 w-11 items-center justify-center rounded-full bg-cream/90 shadow-soft backdrop-blur transition-transform duration-200 hover:scale-105',
             wished ? 'text-maroon' : 'text-ink'
           )}
         >
           <Heart size={18} className={cn(wished && 'fill-maroon')} />
         </button>
 
-        {!inStock && (
-          <div className="absolute inset-0 flex items-center justify-center bg-ivory/60">
-            <Badge variant="outOfStock">Out of Stock</Badge>
-          </div>
-        )}
-
-        {/* Quick add — appears on hover (desktop) */}
-        <div className="absolute inset-x-3 bottom-3 hidden translate-y-3 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 lg:block">
+        <div className="absolute inset-x-3 bottom-3 z-10 hidden translate-y-3 opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:translate-y-0 group-focus-within:opacity-100 lg:block">
           <button
             type="button"
             onClick={handleAdd}
@@ -97,18 +98,18 @@ export default function ProductCard({ product, className }) {
         </div>
       </div>
 
-      <div className="p-4">
+      <Link to={`/product/${product._id}`} className="block p-4">
         <p className="font-accent text-[11px] uppercase tracking-wider text-gold-dark">
           {product.material || product.categoryName}
         </p>
-        <h3 className="mt-1 line-clamp-2 min-h-[2.6rem] text-sm font-medium text-ink">{product.name}</h3>
+        <h3 className="mt-1 line-clamp-2 min-h-[2.6rem] font-accent text-[15px] font-medium text-ink">{product.name}</h3>
         <div className="mt-1.5">
           <Rating value={product.rating} count={product.reviewCount} size={12} showValue={false} />
         </div>
         <div className="mt-2">
           <PriceTag product={product} size="sm" />
         </div>
-      </div>
-    </Link>
+      </Link>
+    </article>
   );
 }
