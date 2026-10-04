@@ -3,7 +3,7 @@ import { cn } from '../../utils/cn';
 import { BRAND } from '../../constants/brand';
 
 const SIZES = {
-  sm: 'text-xl',
+  sm: 'text-lg sm:text-xl',
   md: 'text-2xl',
   lg: 'text-3xl sm:text-4xl',
 };

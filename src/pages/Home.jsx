@@ -1,17 +1,15 @@
 import { useCatalog } from '../hooks/useCatalog';
 import { ProductGridSkeleton } from '../components/ui/Skeleton';
 import Section from '../components/ui/Section';
-import ProductRail from '../components/product/ProductRail';
+import ProductGrid from '../components/product/ProductGrid';
 import HeroCarousel from '../components/home/HeroCarousel';
 import CategoryShowcase from '../components/home/CategoryShowcase';
-import PromoBanners from '../components/home/PromoBanners';
+import EditorialFeature from '../components/home/EditorialFeature';
 import WhyShopWithUs from '../components/home/WhyShopWithUs';
-import Testimonials from '../components/home/Testimonials';
 
 /**
- * Storefront home — the showcase page. Top to bottom: hero carousel, promo
- * banners, category showcase, new arrivals rail, featured collection rail, the
- * brand promise strip and customer testimonials.
+ * Storefront home — a focused path from an editorial opening to category
+ * discovery, a compact product grid, one featured story and useful policy help.
  */
 export default function Home() {
   const { products, loading } = useCatalog();
@@ -26,29 +24,19 @@ export default function Home() {
     <>
       <HeroCarousel />
 
-      <PromoBanners />
-
       <CategoryShowcase />
 
       <Section eyebrow="Just In" title="New Arrivals" viewAllTo="/shop?filter=new" className="bg-ivory">
         {loading ? (
-          <ProductGridSkeleton count={3} />
+          <ProductGridSkeleton count={4} />
         ) : (
-          <ProductRail products={newArrivals} />
+          <ProductGrid products={newArrivals.slice(0, 8)} />
         )}
       </Section>
 
-      <Section eyebrow="Curated" title="Featured Collection" viewAllTo="/shop" className="bg-cream">
-        {loading ? (
-          <ProductGridSkeleton count={3} />
-        ) : (
-          <ProductRail products={featuredCollection} />
-        )}
-      </Section>
+      {!loading && <EditorialFeature products={featuredCollection.slice(0, 3)} />}
 
       <WhyShopWithUs />
-
-      <Testimonials />
     </>
   );
 }

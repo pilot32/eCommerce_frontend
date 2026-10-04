@@ -21,7 +21,7 @@ export default function Section({
   const hasHeader = eyebrow || title || subtitle;
 
   return (
-    <section className={cn('py-14 sm:py-20', className)}>
+    <section className={cn('py-10 sm:py-14 lg:py-16', className)}>
       <Container className={containerClassName}>
         {hasHeader && (
           <div

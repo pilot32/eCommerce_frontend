@@ -13,7 +13,7 @@ import { useWishlist } from '../../context/WishlistContext';
 import { useToast } from '../../context/ToastContext';
 
 const REASSURANCE = [
-  { icon: Truck, text: 'Free delivery in 3–5 days' },
+  { icon: Truck, text: 'Delivery estimate confirmed at checkout' },
   { icon: RefreshCw, text: '7-day easy returns & exchange' },
   { icon: ShieldCheck, text: '100% secure payments' },
 ];
@@ -227,7 +227,8 @@ export default function ProductInfo({ product, className }) {
       </div>
 
       {/* Action row */}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="sticky bottom-3 z-20 -mx-4 border-y border-sand/70 bg-ivory/95 p-4 shadow-card backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0 sm:shadow-none">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <Button
           size="lg"
           className="flex-1"
@@ -257,6 +258,7 @@ export default function ProductInfo({ product, className }) {
         >
           <span className="sm:hidden">{wished ? 'Wishlisted' : 'Add to Wishlist'}</span>
         </Button>
+        </div>
       </div>
 
       {/* Reassurance block */}

@@ -46,6 +46,9 @@ export default function HeroCarousel() {
     >
       {slides.map((slide, i) => {
         const isActive = i === active % count;
+        const primaryCtaLabel = slide.cta?.label?.trim().toLowerCase() === 'done'
+          ? 'Shop the collection'
+          : slide.cta?.label;
         return (
           <div
             key={slide._id}
@@ -79,9 +82,9 @@ export default function HeroCarousel() {
                   <p className="mt-5 text-base text-cream/90 sm:text-lg">{slide.subtitle}</p>
                 )}
                 <div className={cn("mt-8 flex flex-wrap gap-3", slide.align === "center" && "justify-center", slide.align === "right" && "justify-end")}>
-                  {slide.cta && (
+                  {slide.cta?.to && primaryCtaLabel && (
                     <Button to={slide.cta.to} size="lg">
-                      {slide.cta.label}
+                      {primaryCtaLabel}
                     </Button>
                   )}
                   {slide.secondaryCta?.label && slide.secondaryCta?.to && (
