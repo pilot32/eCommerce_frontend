@@ -211,6 +211,7 @@ export default function AdminOrders() {
               ) : (
                 orders.map((order) => {
                   const address = order.shippingAddress || {};
+                  const payment = order.payment || {};
                   const itemCount = (order.orderItems || []).reduce(
                     (sum, item) => sum + (item.quantity || 0),
                     0
@@ -241,9 +242,9 @@ export default function AdminOrders() {
                         {itemCount} item{itemCount === 1 ? '' : 's'}
                       </td>
                       <td className="px-6 py-4">
-                        <p className="text-sm text-gray-900">{order.paymentMethod || '-'}</p>
+                        <p className="text-sm text-gray-900">{payment.method || '-'}</p>
                         <span className="inline-flex mt-1 px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                          {formatStatus(order.paymentStatus || 'PENDING')}
+                          {formatStatus(payment.status || 'PENDING')}
                         </span>
                       </td>
                       <td className="px-6 py-4 text-sm font-medium text-gray-900">

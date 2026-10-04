@@ -145,6 +145,7 @@ export default function AdminOrderDetail() {
   }
 
   const payment = order.payment || {};
+  const shippingQuote = order.shippingQuote || {};
   const coupon = order.appliedCoupon || {};
   const items = order.orderItems || [];
 
@@ -214,6 +215,19 @@ export default function AdminOrderDetail() {
             <DetailRow label="Payment Status" value={formatStatus(payment.status)} />
             <DetailRow label="Transaction ID" value={payment.transactionId} />
             <DetailRow label="Paid At" value={payment.paidAt ? formatDate(payment.paidAt) : '-'} />
+          </InfoCard>
+
+          <InfoCard title="Delivery Quote">
+            <DetailRow label="Provider" value={shippingQuote.provider || '-'} />
+            <DetailRow label="Courier" value={shippingQuote.courierName || '-'} />
+            <DetailRow label="Chargeable Weight" value={shippingQuote.chargeableWeightKg != null ? `${shippingQuote.chargeableWeightKg} kg` : '-'} />
+            <DetailRow
+              label="Estimated Delivery"
+              value={shippingQuote.estimatedDeliveryDays?.min != null
+                ? `${shippingQuote.estimatedDeliveryDays.min}-${shippingQuote.estimatedDeliveryDays.max} days`
+                : '-'}
+            />
+            {shippingQuote.isEstimated && <p className="mt-3 text-xs text-amber-700">This is a mock delivery estimate.</p>}
           </InfoCard>
 
           <InfoCard title="Coupon">
