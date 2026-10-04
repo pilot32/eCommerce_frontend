@@ -14,6 +14,8 @@ export default function OrderSummary({
   coupon,
   shippingQuote,
   shippingLoading = false,
+  paymentMethod = 'COD',
+  onPaymentMethodChange,
   onApplyCoupon,
   onCheckout,
   checkoutLabel = 'Proceed to Checkout',
@@ -74,6 +76,29 @@ export default function OrderSummary({
           {formatCurrency(grandTotal)}
         </span>
       </div>
+
+      <fieldset className="mt-5">
+        <legend className="font-accent text-sm font-semibold text-ink">Payment Method</legend>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <button
+            type="button"
+            onClick={() => onPaymentMethodChange?.('COD')}
+            className={`rounded-input border px-3 py-2 text-sm font-semibold transition-colors ${paymentMethod === 'COD' ? 'border-maroon bg-rose-50 text-maroon' : 'border-sand text-ink-soft hover:border-gold'}`}
+          >
+            Cash on Delivery
+          </button>
+          <button
+            type="button"
+            onClick={() => onPaymentMethodChange?.('RAZORPAY')}
+            className={`rounded-input border px-3 py-2 text-sm font-semibold transition-colors ${paymentMethod === 'RAZORPAY' ? 'border-maroon bg-rose-50 text-maroon' : 'border-sand text-ink-soft hover:border-gold'}`}
+          >
+            Pay Online
+          </button>
+        </div>
+        {paymentMethod === 'RAZORPAY' && (
+          <p className="mt-2 text-xs text-ink-mute">Razorpay Test Mode: no real money is charged.</p>
+        )}
+      </fieldset>
 
       {/* Coupon */}
       <div className="mt-5">

@@ -12,7 +12,9 @@ import { useToast } from '../context/ToastContext';
 import { addressApi } from '../services/addressApi';
 import { orderApi } from '../services/orderApi';
 import { shippingApi } from '../services/shippingApi';
+import { paymentApi } from '../services/paymentApi';
 import { pluralize } from '../utils/format';
+import { loadRazorpayCheckout, openRazorpayCheckout } from '../utils/razorpay';
 
 /**
  * Cart page — lists the customer's selected items with a sticky order
@@ -29,6 +31,7 @@ export default function Cart() {
   const [shippingLoading, setShippingLoading] = useState(false);
   const [shippingError, setShippingError] = useState('');
   const [placingOrder, setPlacingOrder] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('COD');
   const defaultAddressId = defaultAddress?._id;
   const cartQuoteKey = cart.map((item) => `${item._id}:${item.quantity}:${item.priceAddition || item.price}`).join('|');
 
@@ -69,7 +72,7 @@ export default function Cart() {
       try {
         const response = await shippingApi.getQuote({
           shippingAddressId: defaultAddressId,
-          paymentMethod: 'COD',
+          paymentMethod,
         });
         if (active) setShippingQuote(response.data);
       } catch (err) {
@@ -84,7 +87,7 @@ export default function Cart() {
 
     loadShippingQuote();
     return () => { active = false; };
-  }, [token, defaultAddressId, cartQuoteKey, coupon?.code, coupon?.discount]);
+  }, [token, defaultAddressId, cartQuoteKey, coupon?.code, coupon?.discount, paymentMethod]);
 
   const handleApplyCoupon = async (code) => {
     try {
@@ -115,16 +118,48 @@ export default function Cart() {
 
     setPlacingOrder(true);
     try {
-      const response = await orderApi.create({
-        shippingAddressId: defaultAddress._id,
-        paymentMethod: 'COD',
-      });
-      const order = response.data.order || response.data;
+      let order;
+
+      if (paymentMethod === 'COD') {
+        const response = await orderApi.create({
+          shippingAddressId: defaultAddress._id,
+          paymentMethod: 'COD',
+        });
+        order = response.data.order || response.data;
+      } else {
+        await loadRazorpayCheckout();
+        const paymentOrderResponse = await paymentApi.createRazorpayOrder({
+          shippingAddressId: defaultAddress._id,
+        });
+        const paymentOrder = paymentOrderResponse.data;
+        const paymentResult = await openRazorpayCheckout({
+          key: paymentOrder.keyId,
+          amount: paymentOrder.amount,
+          currency: paymentOrder.currency,
+          name: 'Wornora',
+          description: `Order ${paymentOrder.orderNumber}`,
+          order_id: paymentOrder.razorpayOrderId,
+          prefill: {
+            name: paymentOrder.customer?.name,
+            email: paymentOrder.customer?.email,
+            contact: paymentOrder.customer?.contact,
+          },
+          theme: { color: '#9b1c1c' },
+        });
+        const verificationResponse = await paymentApi.verifyRazorpayPayment({
+          orderId: paymentOrder.orderId,
+          razorpayOrderId: paymentResult.razorpay_order_id,
+          razorpayPaymentId: paymentResult.razorpay_payment_id,
+          razorpaySignature: paymentResult.razorpay_signature,
+        });
+        order = verificationResponse.data.order || verificationResponse.data;
+      }
+
       await refreshCart();
       addToast(`Order ${order.orderNumber || ''} placed successfully`, 'success');
       navigate('/profile?tab=orders');
     } catch (err) {
-      addToast(err.response?.data?.message || 'Could not place order', 'error');
+      addToast(err.response?.data?.message || err.message || 'Could not place order', 'error');
     } finally {
       setPlacingOrder(false);
     }
@@ -248,9 +283,11 @@ export default function Cart() {
               coupon={coupon}
               shippingQuote={shippingQuote}
               shippingLoading={shippingLoading}
+              paymentMethod={paymentMethod}
+              onPaymentMethodChange={setPaymentMethod}
               onApplyCoupon={handleApplyCoupon}
               onCheckout={handleCheckout}
-              checkoutLabel={placingOrder ? 'Placing Order...' : 'Place COD Order'}
+              checkoutLabel={placingOrder ? 'Processing Order...' : paymentMethod === 'COD' ? 'Place COD Order' : 'Pay Online (Test)'}
               checkoutDisabled={placingOrder || addressLoading || shippingLoading || Boolean(token && defaultAddress && !shippingQuote)}
             />
           </div>
