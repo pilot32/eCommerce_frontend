@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Trash2 } from 'lucide-react';
 import Container from '../components/ui/Container';
@@ -31,6 +31,7 @@ export default function Cart() {
   const [shippingLoading, setShippingLoading] = useState(false);
   const [shippingError, setShippingError] = useState('');
   const [placingOrder, setPlacingOrder] = useState(false);
+  const checkoutAttemptRef = useRef(null);
   const [paymentMethod, setPaymentMethod] = useState('COD');
   const defaultAddressId = defaultAddress?._id;
   const cartQuoteKey = cart.map((item) => `${item._id}:${item.quantity}:${item.priceAddition || item.price}`).join('|');
@@ -104,6 +105,10 @@ export default function Cart() {
   };
 
   const handleCheckout = async () => {
+    if (checkoutAttemptRef.current) {
+      return;
+    }
+
     if (!token) {
       addToast('Please sign in to place your order', 'error');
       navigate('/login');
@@ -116,21 +121,27 @@ export default function Cart() {
       return;
     }
 
+    const checkoutRequestId = crypto.randomUUID();
+    checkoutAttemptRef.current = checkoutRequestId;
     setPlacingOrder(true);
     try {
       let order;
 
       if (paymentMethod === 'COD') {
-        const response = await orderApi.create({
-          shippingAddressId: defaultAddress._id,
-          paymentMethod: 'COD',
-        });
+        const response = await orderApi.create(
+          {
+            shippingAddressId: defaultAddress._id,
+            paymentMethod: 'COD',
+          },
+          checkoutRequestId,
+        );
         order = response.data.order || response.data;
       } else {
         await loadRazorpayCheckout();
-        const paymentOrderResponse = await paymentApi.createRazorpayOrder({
-          shippingAddressId: defaultAddress._id,
-        });
+        const paymentOrderResponse = await paymentApi.createRazorpayOrder(
+          { shippingAddressId: defaultAddress._id },
+          checkoutRequestId,
+        );
         const paymentOrder = paymentOrderResponse.data;
         const paymentResult = await openRazorpayCheckout({
           key: paymentOrder.keyId,
@@ -161,6 +172,7 @@ export default function Cart() {
     } catch (err) {
       addToast(err.response?.data?.message || err.message || 'Could not place order', 'error');
     } finally {
+      checkoutAttemptRef.current = null;
       setPlacingOrder(false);
     }
   };
