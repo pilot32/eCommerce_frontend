@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Heart, ShoppingBag } from 'lucide-react';
 import { cn } from '../../utils/cn';
 import SmartImage from '../ui/SmartImage';
@@ -15,6 +15,7 @@ import { useToast } from '../../context/ToastContext';
  * 4:5 imagery, discount/new badges, wishlist toggle, hover zoom + quick add.
  */
 export default function ProductCard({ product, className }) {
+  const navigate = useNavigate();
   const { isWishlisted, toggleWishlist } = useWishlist();
   const { addToCart } = useCart();
   const { addToast } = useToast();
@@ -22,6 +23,7 @@ export default function ProductCard({ product, className }) {
   const wished = isWishlisted(product._id);
   const discount = getDiscountPercent(product);
   const inStock = isInStock(product);
+  const needsSizeSelection = (product.sizes?.length || 0) > 0;
 
   const handleWishlist = async (e) => {
     e.preventDefault();
@@ -36,6 +38,10 @@ export default function ProductCard({ product, className }) {
   const handleAdd = async (e) => {
     e.preventDefault();
     if (!inStock) return;
+    if (needsSizeSelection) {
+      navigate(`/product/${product._id}`);
+      return;
+    }
     try {
       await addToCart(product, 1);
       addToast(`${product.name} added to cart`, 'success');
@@ -93,7 +99,7 @@ export default function ProductCard({ product, className }) {
             disabled={!inStock}
             className="flex w-full items-center justify-center gap-2 rounded-btn bg-gold py-2.5 font-accent text-sm font-semibold text-ink shadow-gold transition-colors hover:bg-gold-dark disabled:opacity-50"
           >
-            <ShoppingBag size={16} /> Add to Cart
+            <ShoppingBag size={16} /> {needsSizeSelection ? 'Select Size' : 'Add to Cart'}
           </button>
         </div>
       </div>
