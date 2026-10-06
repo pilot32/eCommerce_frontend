@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { Menu, Search, Heart, ShoppingBag, User } from 'lucide-react';
 import Container from '../ui/Container';
 import Logo from '../ui/Logo';
@@ -33,6 +33,7 @@ function ActionLink({ to, label, badge = 0, children }) {
 }
 
 export default function StoreHeader() {
+  const { pathname, search } = useLocation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -47,7 +48,16 @@ export default function StoreHeader() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const navLinkClass = ({ isActive }) =>
+  const params = new URLSearchParams(search);
+  const filter = params.get('filter');
+  const category = params.get('category');
+  // Shop links share a pathname, so query state determines the selected collection.
+  const activeDestination = pathname !== '/shop' ? pathname
+    : ['new', 'sale'].includes(filter) ? `/shop?filter=${filter}`
+      : ['clothing', 'jewellery'].includes(category) ? `/shop?category=${category}`
+        : '/shop';
+
+  const navLinkClass = (isActive) =>
     cn(
       'font-accent text-sm transition-colors hover:text-gold-dark',
       isActive ? 'text-gold-dark' : 'text-ink'
@@ -106,19 +116,19 @@ export default function StoreHeader() {
         <nav className="hidden border-t border-sand/50 lg:block">
           <Container className="flex h-10 items-center justify-center gap-6">
             {PRIMARY_NAV.map((item) => (
-              <NavLink
+              <Link
                 key={item.to}
                 to={item.to}
-                end={item.to === '/'}
-                className={navLinkClass}
+                aria-current={activeDestination === item.to ? 'page' : undefined}
+                className={navLinkClass(activeDestination === item.to)}
               >
                 {item.label}
-              </NavLink>
+              </Link>
             ))}
 
-            <NavLink to="/shop?filter=sale" className="font-accent text-sm font-medium text-maroon transition-colors hover:text-gold-dark">
+            <Link to="/shop?filter=sale" aria-current={activeDestination === '/shop?filter=sale' ? 'page' : undefined} className={cn('font-accent text-sm font-medium transition-colors hover:text-gold-dark', activeDestination === '/shop?filter=sale' ? 'text-gold-dark' : 'text-maroon')}>
               Festive Sale
-            </NavLink>
+            </Link>
           </Container>
         </nav>
       </div>

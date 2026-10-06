@@ -54,7 +54,7 @@ export default function ProductInfo({ product, className }) {
       return false;
     }
     try {
-      await addToCart(product, quantity);
+      await addToCart(product, quantity, { selectedSize, selectedColor });
       return true;
     } catch (err) {
       addToast(err.response?.data?.message || 'Could not add item to cart', 'error');
@@ -112,13 +112,6 @@ export default function ProductInfo({ product, className }) {
           {product.tags?.map((tag) => (
             <Badge key={tag} variant="soft">{tag}</Badge>
           ))}
-        </div>
-      )}
-
-      {product.careInstructions && (
-        <div className="mt-5 rounded-card border border-sand/60 bg-cream p-4">
-          <p className="font-accent text-sm font-semibold text-ink">Care Instructions</p>
-          <p className="mt-2 text-sm leading-relaxed text-ink-soft">{product.careInstructions}</p>
         </div>
       )}
 

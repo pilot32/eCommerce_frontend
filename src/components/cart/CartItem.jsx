@@ -22,16 +22,14 @@ export default function CartItem({ item }) {
   const productLink = `/product/${item._id}`;
   const lineTotal = getEffectivePrice(item) * item.quantity;
 
-  // Variant summary — prefer the explicit material, else fall back to
-  // the first colour / available sizes so the row is never bare.
-  const variant =
-    item.material ||
-    item.colors?.[0]?.name ||
-    (item.sizes?.length ? `Sizes: ${item.sizes.join(', ')}` : '');
+  const variant = [
+    item.selectedSize && `Size: ${item.selectedSize}`,
+    item.selectedColor && `Colour: ${item.selectedColor}`,
+  ].filter(Boolean).join(' · ');
 
   const handleRemove = async () => {
     try {
-      await removeFromCart(item._id);
+      await removeFromCart(item._id, item);
       addToast(`${item.name} removed from cart`, 'info');
     } catch (err) {
       addToast(err.response?.data?.message || 'Could not remove item', 'error');
@@ -65,7 +63,10 @@ export default function CartItem({ item }) {
                 {item.name}
               </Link>
               {variant && (
-                <p className="mt-0.5 font-accent text-xs text-ink-mute">{variant}</p>
+                <p className="mt-0.5 font-accent text-sm text-ink-soft">{variant}</p>
+              )}
+              {item.sizes?.length > 0 && !item.selectedSize && (
+                <p className="mt-0.5 text-sm text-ink-soft">Size not selected — remove this item and choose a size.</p>
               )}
               <div className="mt-1.5">
                 <PriceTag product={item} size="sm" />
@@ -88,7 +89,7 @@ export default function CartItem({ item }) {
           <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
             <QuantityStepper
               value={item.quantity}
-              onChange={(q) => updateQuantity(item._id, q).catch((err) => {
+              onChange={(q) => updateQuantity(item._id, q, item).catch((err) => {
                 addToast(err.response?.data?.message || 'Could not update quantity', 'error');
               })}
               max={10}

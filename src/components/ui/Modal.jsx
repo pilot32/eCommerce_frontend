@@ -51,21 +51,21 @@ export default function Modal({ open, onClose, title, children, footer, maxWidth
         ref={panelRef}
         tabIndex={-1}
         className={cn(
-          'relative w-full overflow-hidden rounded-card bg-ivory shadow-lift transition-all duration-300',
+          'relative flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-card bg-ivory shadow-lift transition-all duration-300',
           maxWidth,
           shown ? 'translate-y-0 scale-100 opacity-100' : 'translate-y-2 scale-95 opacity-0'
         )}
       >
         {title && (
-          <div className="flex items-center justify-between border-b border-sand/70 px-5 py-4">
+          <div className="flex shrink-0 items-center justify-between border-b border-sand/70 px-5 py-4">
             <h2 className="font-heading text-lg text-ink">{title}</h2>
             <IconButton label="Close" variant="soft" size="sm" onClick={onClose}>
               <X size={18} />
             </IconButton>
           </div>
         )}
-        <div className="p-5">{children}</div>
-        {footer && <div className="border-t border-sand/70 bg-cream p-4">{footer}</div>}
+        <div className="min-h-0 overflow-y-auto overscroll-contain p-5">{children}</div>
+        {footer && <div className="shrink-0 border-t border-sand/70 bg-cream p-4">{footer}</div>}
       </div>
     </div>,
     document.body

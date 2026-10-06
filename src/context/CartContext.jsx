@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import { cartApi } from '../services/cartApi';
 import { useAuth } from './AuthContext';
 import { normalizeProduct } from '../utils/product';
+import { getCartItemKey, mergeCartItem } from '../utils/cart';
 
 const CartContext = createContext(null);
 
@@ -15,6 +16,8 @@ const normalizeCartItem = (item) => {
     ...normalized,
     quantity: item.quantity || 1,
     priceAddition: item.priceAddition,
+    selectedSize: item.selectedSize || '',
+    selectedColor: item.selectedColor || '',
   };
 };
 
@@ -31,7 +34,12 @@ const normalizeCartResponse = (data) => ({
 
 export function CartProvider({ children }) {
   const { token, loading: authLoading } = useAuth();
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('cart') || '[]');
+      return Array.isArray(saved) ? saved : [];
+    } catch { return []; }
+  });
   const [summary, setSummary] = useState({ subtotal: 0, discount: 0, shipping: 0, grandTotal: 0 });
   const [coupon, setCoupon] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -39,15 +47,18 @@ export function CartProvider({ children }) {
   useEffect(() => {
     if (token || authLoading) return;
     const savedCart = localStorage.getItem('cart');
-    setCart(savedCart ? JSON.parse(savedCart) : []);
+    try {
+      const saved = savedCart ? JSON.parse(savedCart) : [];
+      setCart(Array.isArray(saved) ? saved : []);
+    } catch { setCart([]); }
     setSummary({ subtotal: 0, discount: 0, shipping: 0, grandTotal: 0 });
     setCoupon(null);
   }, [token, authLoading]);
 
   useEffect(() => {
-    if (token) return;
+    if (token || authLoading) return;
     localStorage.setItem('cart', JSON.stringify(cart));
-  }, [cart, token]);
+  }, [cart, token, authLoading]);
 
   const applyBackendCart = (data) => {
     const normalized = normalizeCartResponse(data);
@@ -77,44 +88,36 @@ export function CartProvider({ children }) {
     });
   }, [token, authLoading]);
 
-  const addToCart = async (product, quantity = 1) => {
+  const addToCart = async (product, quantity = 1, selection = {}) => {
     if (token) {
-      const response = await cartApi.add({ productId: product._id, quantity });
+      const response = await cartApi.add({ productId: product._id, quantity, ...selection });
       return applyBackendCart(response.data);
     }
 
-    setCart((prev) => {
-      const existing = prev.find((item) => item._id === product._id);
-      if (existing) {
-        return prev.map((item) =>
-          item._id === product._id
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        );
-      }
-      return [...prev, { ...product, quantity }];
-    });
+    setCart((prev) => mergeCartItem(prev, product, quantity, selection));
   };
 
-  const removeFromCart = async (productId) => {
+  const removeFromCart = async (productId, selection = {}) => {
     if (token) {
-      const response = await cartApi.remove(productId);
+      const response = await cartApi.remove(productId, { selectedSize: selection.selectedSize || '', selectedColor: selection.selectedColor || '' });
       return applyBackendCart(response.data);
     }
 
-    setCart((prev) => prev.filter((item) => item._id !== productId));
+    const key = getCartItemKey({ _id: productId, selectedSize: selection.selectedSize, selectedColor: selection.selectedColor });
+    setCart((prev) => prev.filter((item) => getCartItemKey(item) !== key));
   };
 
-  const updateQuantity = async (productId, quantity) => {
-    if (quantity <= 0) { removeFromCart(productId); return; }
+  const updateQuantity = async (productId, quantity, selection = {}) => {
+    if (quantity <= 0) return removeFromCart(productId, selection);
 
     if (token) {
-      const response = await cartApi.updateQuantity(productId, { quantity });
+      const response = await cartApi.updateQuantity(productId, { quantity, selectedSize: selection.selectedSize || '', selectedColor: selection.selectedColor || '' });
       return applyBackendCart(response.data);
     }
 
+    const key = getCartItemKey({ _id: productId, selectedSize: selection.selectedSize, selectedColor: selection.selectedColor });
     setCart((prev) =>
-      prev.map((item) => item._id === productId ? { ...item, quantity } : item)
+      prev.map((item) => getCartItemKey(item) === key ? { ...item, quantity } : item)
     );
   };
 

@@ -4,6 +4,7 @@ import { ArrowLeft, Trash2 } from 'lucide-react';
 import Container from '../components/ui/Container';
 import Breadcrumb from '../components/ui/Breadcrumb';
 import EmptyState from '../components/ui/EmptyState';
+import Button from '../components/ui/Button';
 import CartItem from '../components/cart/CartItem';
 import OrderSummary from '../components/cart/OrderSummary';
 import { useCart } from '../context/CartContext';
@@ -15,6 +16,7 @@ import { shippingApi } from '../services/shippingApi';
 import { paymentApi } from '../services/paymentApi';
 import { pluralize } from '../utils/format';
 import { loadRazorpayCheckout, openRazorpayCheckout } from '../utils/razorpay';
+import { getCartItemKey } from '../utils/cart';
 
 /**
  * Cart page — lists the customer's selected items with a sticky order
@@ -216,7 +218,7 @@ export default function Cart() {
         <section className="lg:col-span-2" aria-label="Cart items">
           <ul className="space-y-4">
             {cart.map((item) => (
-              <li key={item._id}>
+              <li key={getCartItemKey(item)}>
                 <CartItem item={item} />
               </li>
             ))}
@@ -252,9 +254,12 @@ export default function Cart() {
                 Delivery Address
               </p>
               {!token ? (
-                <p className="mt-2 text-sm text-ink-soft">
-                  Sign in to use saved addresses and place a COD order.
-                </p>
+                <div className="mt-2">
+                  <p className="text-sm text-ink-soft">
+                    Sign in to use saved addresses and place a COD order.
+                  </p>
+                  <Button to="/login" className="mt-3">Sign In</Button>
+                </div>
               ) : addressLoading ? (
                 <p className="mt-2 text-sm text-ink-soft">Loading address...</p>
               ) : defaultAddress ? (
